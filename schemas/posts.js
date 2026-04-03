@@ -23,7 +23,7 @@ const postSchema = new mongoose.Schema(
       default: "public"
     },
 
-    likesCount: {
+    reactionsCount: {
       type: Number,
       default: 0,
       min: 0

@@ -1,4 +1,3 @@
-let userController = require('../controllers/users');
 let userModel = require('../schemas/users');
 let jwt = require('jsonwebtoken');
 
