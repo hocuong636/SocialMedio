@@ -22,6 +22,25 @@ router.get('/profile', CheckLogin, async function (req, res, next) {
     }
 });
 
+// Lay thong tin user theo username (public)
+router.get('/by-username/:username', CheckLogin, async function (req, res, next) {
+    try {
+        let user = await userModel.findOne({
+            username: req.params.username,
+            isDeleted: false
+        })
+        .select('-password -forgotPasswordToken -forgotPasswordTokenExp -loginCount -lockTime')
+        .populate('role');
+
+        if (!user) {
+            return res.status(404).send({ message: "Nguoi dung khong ton tai" });
+        }
+        res.status(200).send(user);
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
 // Cap nhat thong tin user (fullName, bio)
 router.put('/info', CheckLogin, async function (req, res, next) {
     try {

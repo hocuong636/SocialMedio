@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   UserPlus,
@@ -12,9 +12,9 @@ import {
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUIStore } from '../../store/useUIStore'
 import { followService } from '../../services/followService'
+import { userService } from '../../services/userService'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
-import Badge from '../../components/ui/Badge'
 import Spinner from '../../components/ui/Spinner'
 import EditProfileModal from '../../components/profile/EditProfileModal'
 
@@ -34,19 +34,33 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false)
 
   const isOwnProfile = currentUser?.username === username
-  const profileUser = isOwnProfile ? currentUser : null
 
-  // Followers & following for current user (or own profile)
+  // Fetch other user's data by username
+  const { data: fetchedUser, isLoading: loadingUser } = useQuery({
+    queryKey: ['user', username],
+    queryFn: () => userService.getUserByUsername(username!),
+    enabled: !isOwnProfile && !!username,
+  })
+
+  const profileUser = isOwnProfile ? currentUser : fetchedUser ?? null
+
+  // Followers & following — own profile uses own endpoints, other profile uses userId endpoints
   const { data: followingData, isLoading: loadingFollowing } = useQuery({
-    queryKey: ['following', currentUser?._id],
-    queryFn: () => followService.getFollowing(1, 50),
-    enabled: isOwnProfile && !!currentUser,
+    queryKey: ['following', profileUser?._id],
+    queryFn: () =>
+      isOwnProfile
+        ? followService.getFollowing(1, 50)
+        : followService.getUserFollowing(profileUser!._id, 1, 50),
+    enabled: !!profileUser,
   })
 
   const { data: followersData, isLoading: loadingFollowers } = useQuery({
-    queryKey: ['followers', currentUser?._id],
-    queryFn: () => followService.getFollowers(1, 50),
-    enabled: isOwnProfile && !!currentUser,
+    queryKey: ['followers', profileUser?._id],
+    queryFn: () =>
+      isOwnProfile
+        ? followService.getFollowers(1, 50)
+        : followService.getUserFollowers(profileUser!._id, 1, 50),
+    enabled: !!profileUser,
   })
 
   // Check if following this user (only for other profiles)
@@ -60,6 +74,7 @@ export default function ProfilePage() {
     mutationFn: () => followService.follow(profileUser!._id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['isFollowing', profileUser?._id] })
+      queryClient.invalidateQueries({ queryKey: ['followers', profileUser?._id] })
       addToast('Đã theo dõi!', 'success')
     },
     onError: () => addToast('Không thể theo dõi', 'error'),
@@ -69,23 +84,24 @@ export default function ProfilePage() {
     mutationFn: () => followService.unfollow(profileUser!._id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['isFollowing', profileUser?._id] })
+      queryClient.invalidateQueries({ queryKey: ['followers', profileUser?._id] })
       addToast('Đã hủy theo dõi', 'info')
     },
     onError: () => addToast('Không thể hủy theo dõi', 'error'),
   })
 
-  if (!isOwnProfile) {
+  if (!isOwnProfile && loadingUser) return <Spinner />
+
+  if (!profileUser) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
         <p className="font-bold text-gray-700 mb-1">Không tìm thấy người dùng</p>
         <p className="text-sm text-gray-400">
-          Tính năng xem hồ sơ người dùng khác đang được phát triển.
+          Người dùng không tồn tại hoặc đã bị xóa.
         </p>
       </div>
     )
   }
-
-  if (!profileUser) return <Spinner />
 
   return (
     <>
@@ -113,35 +129,39 @@ export default function ProfilePage() {
               className="ring-4 ring-white"
             />
             {isOwnProfile ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil size={15} />
-                Chỉnh sửa
-              </Button>
+              <div className="pt-14">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil size={15} />
+                  Chỉnh sửa
+                </Button>
+              </div>
             ) : (
-              <Button
-                variant={isFollowing ? 'secondary' : 'primary'}
-                size="sm"
-                loading={followMutation.isPending || unfollowMutation.isPending}
-                onClick={() =>
-                  isFollowing
-                    ? unfollowMutation.mutate()
-                    : followMutation.mutate()
-                }
-              >
-                {isFollowing ? (
-                  <>
-                    <UserCheck size={15} /> Đang theo dõi
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={15} /> Theo dõi
-                  </>
-                )}
-              </Button>
+              <div className="pt-14">
+                <Button
+                  variant={isFollowing ? 'secondary' : 'primary'}
+                  size="sm"
+                  loading={followMutation.isPending || unfollowMutation.isPending}
+                  onClick={() =>
+                    isFollowing
+                      ? unfollowMutation.mutate()
+                      : followMutation.mutate()
+                  }
+                >
+                  {isFollowing ? (
+                    <>
+                      <UserCheck size={15} /> Đang theo dõi
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={15} /> Theo dõi
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -150,7 +170,6 @@ export default function ProfilePage() {
               <h1 className="text-xl font-black text-gray-900">
                 {profileUser.fullName || profileUser.username}
               </h1>
-              <Badge color="blue">{profileUser.role.name}</Badge>
             </div>
             <p className="text-sm text-gray-400">@{profileUser.username}</p>
             {profileUser.bio && (
@@ -238,19 +257,24 @@ export default function ProfilePage() {
               ) : (
                 <ul className="space-y-3">
                   {followingData?.data.map((f) => (
-                    <li key={f._id} className="flex items-center gap-3">
-                      <Avatar
-                        name={f.following.fullName || f.following.username}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {f.following.fullName || f.following.username}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate">
-                          @{f.following.username}
-                        </p>
-                      </div>
+                    <li key={f._id}>
+                      <Link
+                        to={`/profile/${f.following.username}`}
+                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <Avatar
+                          name={f.following.fullName || f.following.username}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {f.following.fullName || f.following.username}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            @{f.following.username}
+                          </p>
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -271,20 +295,25 @@ export default function ProfilePage() {
               ) : (
                 <ul className="space-y-3">
                   {followersData?.data.map((f) => (
-                    <li key={f._id} className="flex items-center gap-3">
-                      <Avatar
-                        name={f.follower.fullName || f.follower.username}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {f.follower.fullName || f.follower.username}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate">
-                          @{f.follower.username}
-                        </p>
-                      </div>
-                      <Users size={14} className="text-gray-300 flex-shrink-0" />
+                    <li key={f._id}>
+                      <Link
+                        to={`/profile/${f.follower.username}`}
+                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <Avatar
+                          name={f.follower.fullName || f.follower.username}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {f.follower.fullName || f.follower.username}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            @{f.follower.username}
+                          </p>
+                        </div>
+                        <Users size={14} className="text-gray-300 flex-shrink-0" />
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -296,7 +325,9 @@ export default function ProfilePage() {
     </div>
 
       {/* Edit profile modal */}
-      <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      {isOwnProfile && (
+        <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      )}
     </>
   )
 }
