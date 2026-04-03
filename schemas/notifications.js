@@ -10,21 +10,35 @@ const notificationSchema = new mongoose.Schema(
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
+      required: true
     },
     type: {
-      type: String, // ví dụ: "post_like", "comment", "follow"
+      type: String,
+      enum: [
+        "reaction",       // ai đó react bài viết của bạn
+        "comment",        // ai đó comment bài viết của bạn
+        "follow",         // ai đó follow bạn
+        "message",        // ai đó gửi tin nhắn
+        "post",           // ai bạn follow đăng bài mới
+        "report_resolved" // report được xử lý
+      ],
       required: true
     },
     content: {
       type: String,
       required: true
     },
+    refModel: {
+      type: String,
+      enum: ["post", "comment", "user", "message", null]
+    },
+    refId: {
+      type: mongoose.Schema.Types.ObjectId
+      // ObjectId liên kết tới post/comment/user tương ứng
+    },
     isRead: {
       type: Boolean,
       default: false
-    },
-    link: {
-      type: String // đường link tới bài viết/profile liên quan
     }
   },
   {

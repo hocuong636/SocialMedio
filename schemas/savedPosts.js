@@ -18,4 +18,7 @@ const savedPostSchema = new mongoose.Schema(
   }
 );
 
+// Một user chỉ save 1 post 1 lần
+savedPostSchema.index({ user: 1, post: 1 }, { unique: true });
+
 module.exports = mongoose.model("savedPost", savedPostSchema);
