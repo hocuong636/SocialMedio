@@ -20,6 +20,11 @@ export const userService = {
     return res.data as UserProfile
   },
 
+  async getUserByUsername(username: string): Promise<User> {
+    const res = await api.get(`/users/by-username/${encodeURIComponent(username)}`)
+    return res.data as User
+  },
+
   async updateInfo(data: UpdateUserInfoPayload): Promise<User> {
     const res = await api.put('/users/info', data)
     return res.data as User
