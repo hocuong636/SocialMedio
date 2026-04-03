@@ -14,10 +14,10 @@ router.post('/login', async function (req, res, next) {
     if (!result) {
         res.status(404).send("Thong tin dang nhap khong dung");
     } else {
-        res.cookie("TOKEN_SOCIAL_MEDIA", result, {
+        res.cookie(process.env.COOKIE_NAME || "TOKEN_SOCIAL_MEDIA", result, {
             maxAge: 24 * 60 * 60 * 1000,
             httpOnly: true,
-            secure: false
+            secure: process.env.NODE_ENV === 'production'
         });
         res.send(result);
     }
@@ -67,7 +67,7 @@ router.post('/changepassword', CheckLogin, ChangePasswordValidator, validatedRes
 
 // logout
 router.post('/logout', CheckLogin, async function (req, res, next) {
-    res.cookie("TOKEN_SOCIAL_MEDIA", null, {
+    res.cookie(process.env.COOKIE_NAME || "TOKEN_SOCIAL_MEDIA", null, {
         maxAge: 0
     });
     res.send("Logout thanh cong");

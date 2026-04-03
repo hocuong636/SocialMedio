@@ -55,8 +55,8 @@ module.exports = {
                     await user.save();
                     let token = jwt.sign({
                         id: user.id
-                    }, 'secret', {
-                        expiresIn: '1d'
+                    }, process.env.JWT_SECRET || 'secret', {
+                        expiresIn: process.env.JWT_EXPIRES_IN || '1d'
                     });
                     return token;
                 } else {

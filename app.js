@@ -1,10 +1,18 @@
+require('dotenv').config();
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
+var fs = require('fs');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
 let mongoose = require('mongoose');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
 
 var indexRouter = require('./routes/index');
 
@@ -40,9 +48,10 @@ app.use('/api/v1/reactions', require('./routes/reactions'));
 app.use('/api/v1/notifications', require('./routes/notifications'));
 app.use('/api/v1/reports', require('./routes/reports'));
 
-mongoose.connect('mongodb://localhost:27017/SocialMedia?directConnection=true');
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/SocialMedia?directConnection=true';
+mongoose.connect(mongoUri);
 mongoose.connection.on('connected', () => {
-  console.log("MongoDB connected");
+  console.log("MongoDB connected to: ", mongoUri.split('@').pop().split('?')[0]); // Log destination safely
 });
 mongoose.connection.on('disconnected', () => {
   console.log("MongoDB disconnected");

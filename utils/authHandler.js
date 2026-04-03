@@ -5,8 +5,9 @@ module.exports = {
     CheckLogin: async function (req, res, next) {
         try {
             let token;
-            if (req.cookies.TOKEN_SOCIAL_MEDIA) {
-                token = req.cookies.TOKEN_SOCIAL_MEDIA;
+            const cookieName = process.env.COOKIE_NAME || 'TOKEN_SOCIAL_MEDIA';
+            if (req.cookies[cookieName]) {
+                token = req.cookies[cookieName];
             } else {
                 token = req.headers.authorization;
                 if (!token || !token.startsWith("Bearer")) {
@@ -15,7 +16,7 @@ module.exports = {
                 }
                 token = token.split(' ')[1];
             }
-            let result = jwt.verify(token, 'secret');
+            let result = jwt.verify(token, process.env.JWT_SECRET || 'secret');
             if (result.exp * 1000 < Date.now()) {
                 res.status(403).send({ message: "Ban chua dang nhap" });
                 return;
