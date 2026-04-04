@@ -1,29 +1,25 @@
 var express = require('express');
 var router = express.Router();
 
-const notificationController = require('../controllers/notifications');
-let { CheckLogin } = require('../utils/authHandler'); // Kéo middleware CheckLogin vào để bảo mật
+const notificationController = require('../controllers/notifications.js');
+let { CheckLogin } = require('../utils/authHandler');
 
-/* =======================================
-   CÁC API LIÊN QUAN ĐẾN THÔNG BÁO (NOTIFICATION)
-   ======================================= */
-
-// 1. Lấy số lượng thông báo chưa đọc (để đếm số hiển thị trên chuông)
+//lay so luong thong bao chua doc
 router.get('/unread-count', CheckLogin, notificationController.getUnreadCount);
 
-// 2. Lấy danh sách thông báo
+//lay danh sach thong bao
 router.get('/', CheckLogin, notificationController.getAllNotifications);
 
-// 3. Đánh dấu tất cả là đã đọc
+//danh dau tat ca la da doc
 router.patch('/read-all', CheckLogin, notificationController.markAllAsRead);
 
-// 4. Đánh dấu MỘT thông báo là đã đọc (Khi click vào cái nào thì đánh dấu cái đó)
+//danh dau 1 thong bao la da doc
 router.patch('/:id/read', CheckLogin, notificationController.markAsRead);
 
-// 5. Xóa tất cả thông báo đã đọc
+//xoa tat ca thong bao da doc
 router.delete('/all', CheckLogin, notificationController.deleteAllNotification);
 
-// 6. Xóa MỘT thông báo
+//xoa 1 thong bao
 router.delete('/:id', CheckLogin, notificationController.deleteNotification);
 
 module.exports = router;
