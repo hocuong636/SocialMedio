@@ -1,10 +1,11 @@
+require('dotenv').config();
 const mongoose = require("mongoose");
 const roleModel = require("./schemas/roles");
 
 async function seedRole() {
     try {
-        await mongoose.connect('mongodb://localhost:27017/SocialMedia?directConnection=true');
-        console.log("MongoDB connected");
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/SocialMedia?directConnection=true');
+        console.log("MongoDB connected for seeding");
 
         let existingRole = await roleModel.findOne({ name: 'user' });
 
