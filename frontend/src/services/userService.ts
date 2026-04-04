@@ -25,6 +25,11 @@ export const userService = {
     return res.data as User
   },
 
+  async getSuggestedUsers(): Promise<User[]> {
+    const res = await api.get('/users/suggested/all')
+    return res.data.data as User[]
+  },
+
   async updateInfo(data: UpdateUserInfoPayload): Promise<User> {
     const res = await api.put('/users/info', data)
     return res.data as User

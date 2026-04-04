@@ -41,6 +41,8 @@ export interface Post {
   visibility: 'public' | 'friends' | 'private'
   reactionsCount: number
   commentsCount: number
+  isLiked?: boolean
+  isSaved?: boolean
   isDeleted: boolean
   createdAt: string
   updatedAt: string

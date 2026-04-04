@@ -13,10 +13,13 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { useUIStore } from '../../store/useUIStore'
 import { followService } from '../../services/followService'
 import { userService } from '../../services/userService'
+import { postService } from '../../services/postService'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import EditProfileModal from '../../components/profile/EditProfileModal'
+import PostCard from '../../components/post/PostCard'
+import type { Post } from '../../types'
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -60,6 +63,13 @@ export default function ProfilePage() {
       isOwnProfile
         ? followService.getFollowers(1, 50)
         : followService.getUserFollowers(profileUser!._id, 1, 50),
+    enabled: !!profileUser,
+  })
+
+  // Fetch posts for this user
+  const { data: postsData, isLoading: loadingPosts } = useQuery({
+    queryKey: ['userPosts', profileUser?._id],
+    queryFn: () => postService.getUserPosts(profileUser!._id, 1, 20),
     enabled: !!profileUser,
   })
 
@@ -237,10 +247,29 @@ export default function ProfilePage() {
 
         <div className="p-4">
           {activeTab === 'posts' && (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-400">
-                Tính năng bài viết đang được phát triển.
-              </p>
+            <div>
+              {loadingPosts ? (
+                <div className="flex justify-center py-8">
+                   <Spinner />
+                </div>
+              ) : postsData?.data.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400">
+                    Người dùng này chưa có bài viết nào.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {postsData?.data.map((post: Post) => (
+                    <div key={post._id} className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                       <PostCard 
+                          post={post} 
+                          currentUser={currentUser || undefined} 
+                       />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

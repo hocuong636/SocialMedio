@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2 } from 'lucide-react'
-import type { Post } from '../../types'
+import type { Post, User } from '../../types'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
+import { reactionService } from '../../services/reactionService'
+import { savedPostService } from '../../services/savedPostService'
+import CommentSection from './CommentSection'
 
 interface PostCardProps {
   post: Post
   onDelete?: (id: string) => void
-  currentUserId?: string
+  currentUser?: User
 }
 
 function timeAgo(dateStr: string) {
@@ -22,18 +25,38 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('vi-VN')
 }
 
-export default function PostCard({ post, onDelete, currentUserId }: PostCardProps) {
-  const [liked, setLiked] = useState(false)
-  const [saved, setSaved] = useState(false)
+export default function PostCard({ post, onDelete, currentUser }: PostCardProps) {
+  const [liked, setLiked] = useState(post.isLiked || false)
+  const [saved, setSaved] = useState(post.isSaved || false)
   const [likeCount, setLikeCount] = useState(post.reactionsCount)
   const [showMenu, setShowMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showComments, setShowComments] = useState(false)
 
-  const isOwner = currentUserId === post.author._id
+  const isOwner = currentUser?._id === post.author._id
 
-  const handleLike = () => {
-    setLiked((v) => !v)
-    setLikeCount((c) => (liked ? c - 1 : c + 1))
+  const handleLike = async () => {
+    try {
+      setLiked((v) => !v)
+      setLikeCount((c) => (!liked ? c + 1 : c - 1))
+      await reactionService.addOrUpdateReaction(post._id, 'like')
+    } catch (error) {
+      setLiked((v) => !v)
+      setLikeCount((c) => (liked ? c + 1 : c - 1))
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaved((v) => !v)
+      if (!saved) {
+        await savedPostService.savePost(post._id)
+      } else {
+        await savedPostService.unsavePost(post._id)
+      }
+    } catch (error) {
+      setSaved((v) => !v)
+    }
   }
 
   return (
@@ -143,13 +166,16 @@ export default function PostCard({ post, onDelete, currentUserId }: PostCardProp
             <span>{likeCount}</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer">
+          <button 
+            onClick={() => setShowComments((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
             <MessageCircle size={17} />
             <span>{post.commentsCount}</span>
           </button>
 
           <button
-            onClick={() => setSaved((v) => !v)}
+            onClick={handleSave}
             className={`ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
               saved
                 ? 'text-blue-600 bg-blue-50'
@@ -160,6 +186,16 @@ export default function PostCard({ post, onDelete, currentUserId }: PostCardProp
           </button>
         </div>
       </article>
+
+      {showComments && (
+        <div className="mt-2">
+          <CommentSection 
+            postId={post._id} 
+            currentUser={currentUser} 
+            commentsCount={post.commentsCount} 
+          />
+        </div>
+      )}
 
       {/* Delete confirmation modal */}
       <Modal

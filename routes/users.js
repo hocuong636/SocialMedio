@@ -41,6 +41,22 @@ router.get('/by-username/:username', CheckLogin, async function (req, res, next)
     }
 });
 
+// Lay danh sach nguoi dung goi y (random 5 nguoi khac minh)
+router.get('/suggested/all', CheckLogin, async function (req, res, next) {
+    try {
+        let users = await userModel.find({
+            _id: { $ne: req.user._id },
+            isDeleted: false
+        })
+        .select('username fullName avatarUrl')
+        .limit(5);
+
+        res.status(200).send({ data: users });
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
 // Cap nhat thong tin user (fullName, bio)
 router.put('/info', CheckLogin, async function (req, res, next) {
     try {
