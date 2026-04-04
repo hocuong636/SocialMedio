@@ -3,7 +3,7 @@ const roleModel = require("./schemas/roles");
 
 async function seedRole() {
     try {
-        await mongoose.connect('mongodb://localhost:27019/SocialMedia?directConnection=true');
+        await mongoose.connect('mongodb://localhost:27017/SocialMedia?directConnection=true');
         console.log("MongoDB connected");
 
         let existingRole = await roleModel.findOne({ name: 'user' });

@@ -25,8 +25,6 @@ router.post('/login', async function (req, res, next) {
 
 // register
 router.post('/register', RegisterValidator, validatedResult, async function (req, res, next) {
-    let session = await mongoose.startSession();
-    session.startTransaction();
     try {
         let { username, password, email } = req.body;
         let userRole = await roleModel.findOne({ name: 'user' });
@@ -34,16 +32,16 @@ router.post('/register', RegisterValidator, validatedResult, async function (req
             throw new Error("Role 'user' chua ton tai trong he thong");
         }
         let newUser = await userController.CreateAnUser(
-            username, password, email, userRole._id, session
+            username,
+            password,
+            email,
+            userRole._id,
+            undefined,
         );
-        await session.commitTransaction();
-        await session.endSession();
         newUser = await newUser.populate('role');
         let profile = await userProfileModel.findOne({ user: newUser._id }).populate('user');
         res.send(profile);
     } catch (error) {
-        await session.abortTransaction();
-        await session.endSession();
         res.status(404).send(error.message);
     }
 });

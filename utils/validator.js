@@ -60,5 +60,65 @@ module.exports = {
     ],
     CreateCommentValidator: [
         body('content').notEmpty().withMessage("noi dung comment khong duoc de trong"),
-    ]
+    ],
+    
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Validation functions für Comment content
+    // ─────────────────────────────────────────────────────────────────────────────
+    validateCommentContent: function(content) {
+        // Trim whitespace
+        if (typeof content !== 'string') {
+            return {
+                isValid: false,
+                message: 'Comment content phải là string',
+            };
+        }
+        
+        const trimmed = content.trim();
+        
+        // Min length: 1
+        if (trimmed.length < 1) {
+            return {
+                isValid: false,
+                message: 'Comment không được để trống',
+            };
+        }
+        
+        // Max length: 500
+        if (trimmed.length > 500) {
+            return {
+                isValid: false,
+                message: 'Comment tối đa 500 ký tự',
+            };
+        }
+        
+        return {
+            isValid: true,
+        };
+    },
+    
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Validation function für Reaction type
+    // ─────────────────────────────────────────────────────────────────────────────
+    validateReactionType: function(type) {
+        const validTypes = ['like', 'haha', 'love', 'wow', 'sad', 'angry'];
+        
+        if (!type || typeof type !== 'string') {
+            return {
+                isValid: false,
+                message: 'Reaction type là bắt buộc và phải là string',
+            };
+        }
+        
+        if (!validTypes.includes(type.toLowerCase())) {
+            return {
+                isValid: false,
+                message: `Reaction type phải là một trong: ${validTypes.join(', ')}`,
+            };
+        }
+        
+        return {
+            isValid: true,
+        };
+    },
 };
