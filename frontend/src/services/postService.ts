@@ -13,11 +13,24 @@ export const postService = {
     images: string[] = [],
   ): Promise<Post> {
     const res = await api.post('/posts', { content, visibility, images })
-    return res.data as Post
+    return res.data.data as Post
+  },
+
+  async updatePost(
+    id: string,
+    data: { content?: string; visibility?: string; images?: string[] },
+  ): Promise<Post> {
+    const res = await api.put(`/posts/${id}`, data)
+    return res.data.data as Post
   },
 
   async deletePost(id: string): Promise<void> {
     await api.delete(`/posts/${id}`)
+  },
+
+  async getPost(id: string): Promise<Post> {
+    const res = await api.get(`/posts/${id}`)
+    return res.data as Post
   },
 
   async getUserPosts(

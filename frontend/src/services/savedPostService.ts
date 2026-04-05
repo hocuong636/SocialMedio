@@ -9,7 +9,7 @@ export const savedPostService = {
 
   async savePost(postId: string): Promise<SavedPost> {
     const res = await api.post('/saved-posts', { postId })
-    return res.data as SavedPost
+    return res.data.data as SavedPost
   },
 
   async unsavePost(postId: string): Promise<void> {

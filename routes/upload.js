@@ -44,10 +44,8 @@ router.post('/cover', CheckLogin, uploadImage.single('cover'), async function (r
     }
 });
 
-//1. Import Handler ở utils
-const { uploadImage } = require('../utils/uploadHandler');
-//2. Tạo route Post/api/v1/upload/image
-router.post('/image', uploadImage.single('image'), (req, res) => {
+// Upload image cho bài viết (yêu cầu đăng nhập)
+router.post('/image', CheckLogin, uploadImage.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({

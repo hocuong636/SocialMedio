@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { ImagePlus, Globe, Users, Lock, Send } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { ImagePlus, Globe, Users, Lock, Send, X } from 'lucide-react'
 import type { User } from '../../types'
 import Avatar from '../ui/Avatar'
 import Button from '../ui/Button'
+import api from '../../api/axiosConfig'
 
 interface PostComposerProps {
   user: User
-  onSubmit: (content: string, visibility: 'public' | 'friends' | 'private') => Promise<void>
+  onSubmit: (content: string, visibility: 'public' | 'friends' | 'private', images: string[]) => Promise<void>
 }
 
 const visibilityOptions = [
@@ -19,14 +20,43 @@ export default function PostComposer({ user, onSubmit }: PostComposerProps) {
   const [content, setContent] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public')
   const [loading, setLoading] = useState(false)
+  const [images, setImages] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData()
+        formData.append('image', file)
+        const res = await api.post('/upload/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        setImages((prev) => [...prev, res.data.imageUrl])
+      }
+    } catch {
+      // Upload failed silently
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!content.trim()) return
+    if (!content.trim() && images.length === 0) return
     setLoading(true)
     try {
-      await onSubmit(content, visibility)
+      await onSubmit(content, visibility, images)
       setContent('')
+      setImages([])
     } finally {
       setLoading(false)
     }
@@ -53,14 +83,24 @@ export default function PostComposer({ user, onSubmit }: PostComposerProps) {
             />
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                {/* Image attach (UI only – upload API is a stub) */}
+                {/* Image attach */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
                 <button
                   type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
                   title="Đính kèm ảnh"
                 >
                   <ImagePlus size={15} />
-                  Ảnh
+                  {uploading ? 'Đang tải...' : 'Ảnh'}
                 </button>
 
                 {/* Visibility selector */}
@@ -96,12 +136,30 @@ export default function PostComposer({ user, onSubmit }: PostComposerProps) {
                 type="submit"
                 size="sm"
                 loading={loading}
-                disabled={!content.trim()}
+                disabled={!content.trim() && images.length === 0}
               >
                 <Send size={14} />
                 Đăng
               </Button>
             </div>
+
+            {/* Image preview */}
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {images.map((img, i) => (
+                  <div key={i} className="relative w-20 h-20">
+                    <img src={img} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
         </div>
       </div>

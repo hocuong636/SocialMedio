@@ -55,7 +55,7 @@ module.exports = {
                     await user.save();
                     let token = jwt.sign({
                         id: user.id
-                    }, 'secret', {
+                    }, require('../utils/authHandler').JWT_SECRET, {
                         expiresIn: '1d'
                     });
                     return token;

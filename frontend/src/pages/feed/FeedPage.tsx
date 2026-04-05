@@ -22,10 +22,12 @@ export default function FeedPage() {
     mutationFn: ({
       content,
       visibility,
+      images,
     }: {
       content: string
       visibility: 'public' | 'friends' | 'private'
-    }) => postService.createPost(content, visibility),
+      images: string[]
+    }) => postService.createPost(content, visibility, images),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feed'] })
       addToast('Đã đăng bài viết!', 'success')
@@ -58,8 +60,8 @@ export default function FeedPage() {
       {user && (
         <PostComposer
           user={user}
-          onSubmit={async (content, visibility) => {
-            await createMutation.mutateAsync({ content, visibility })
+          onSubmit={async (content, visibility, images) => {
+            await createMutation.mutateAsync({ content, visibility, images })
           }}
         />
       )}
