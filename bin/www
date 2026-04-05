@@ -33,16 +33,14 @@ var io = new Server(server, {
   }
 });
 
+//lưu vào global để các file schema có thể gọi được
+global.io = io;
 // Gắn io vào app để các route/controller có thể dùng: req.app.get('io')
 app.set('io', io);
 
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
-  });
-});
+const chatHandler = require('../utils/chatHandler');
+chatHandler(io); // Truyền đối tượng io vào handler chúng ta vừa viết
 
 /**
  * Listen on provided port, on all network interfaces.

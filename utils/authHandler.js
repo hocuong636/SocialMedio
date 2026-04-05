@@ -1,7 +1,10 @@
 let userModel = require('../schemas/users');
 let jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+
 module.exports = {
+    JWT_SECRET,
     CheckLogin: async function (req, res, next) {
         try {
             let token;
@@ -15,7 +18,7 @@ module.exports = {
                 }
                 token = token.split(' ')[1];
             }
-            let result = jwt.verify(token, 'secret');
+            let result = jwt.verify(token, JWT_SECRET);
             if (result.exp * 1000 < Date.now()) {
                 res.status(403).send({ message: "Ban chua dang nhap" });
                 return;
