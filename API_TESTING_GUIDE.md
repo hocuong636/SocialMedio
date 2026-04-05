@@ -147,7 +147,7 @@ Hệ thống cung cấp cơ chế Check Login qua 2 phương thức: **Cookies**
 #### 12. Lấy chi tiết một bài viết [Auth]
 - **Method:** `GET`
 - **URL:** `/posts/:id` *(thay `:id` bằng Object ID của bài viết)*
-
+  
 #### 13. Lấy toàn bộ bài viết của 1 User bất kỳ [Auth]
 - **Method:** `GET`
 - **URL:** `/posts/user/:userId?page=1&limit=10`
@@ -247,3 +247,71 @@ Hệ thống cung cấp cơ chế Check Login qua 2 phương thức: **Cookies**
   - Value: *(Chọn file ảnh)*
 
 *(Sau khi gọi API Upload của Bài Viết thành công, máy chủ trả về dạng `/uploads/hinhanh.jpg`. Bạn sử dụng URL này để đặt vào mảng `images` khi gọi API tạo `POST` trong mục Nhóm Posts).*
+
+---
+
+### 💬 Nhóm: Comments (`/comments`)
+
+#### 28. Thêm bình luận mới [Auth]
+- **Method:** `POST`
+- **URL:** `/comments`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "post": "660c123abc456...",
+      "content": "Bài viết hay quá!",
+      "parentComment": null
+  }
+  ```
+  *(Lưu ý: Nếu comment là dạng trả lời cho 1 comment khác, hãy truyền ID của comment cha vào trường `parentComment`)*
+
+#### 29. Lấy danh sách bình luận của bài viết [Auth]
+- **Method:** `GET`
+- **URL:** `/comments/post/:postId?page=1&limit=10`
+
+#### 30. Lấy danh sách câu trả lời của 1 bình luận (Replies) [Auth]
+- **Method:** `GET`
+- **URL:** `/comments/:commentId/replies?page=1&limit=5`
+
+#### 31. Chỉnh sửa bình luận [Auth]
+- **Method:** `PATCH`
+- **URL:** `/comments/:commentId`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "content": "Nội dung bình luận đã thay đổi"
+  }
+  ```
+
+#### 32. Xóa bình luận [Auth]
+- **Method:** `DELETE`
+- **URL:** `/comments/:commentId`
+
+---
+
+### ❤️ Nhóm: Reactions (Cảm xúc) (`/reactions`)
+
+#### 33. Thả hoặc Đổi Cảm xúc cho bài viết [Auth]
+- **Method:** `POST`
+- **URL:** `/reactions`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "post": "660c123abc456...",
+      "type": "like"
+  }
+  ```
+  *(Lưu ý: Trường `type` chỉ nhận 1 trong 6 cảm xúc sau: `"like"`, `"haha"`, `"love"`, `"wow"`, `"sad"`, `"angry"`)*
+
+#### 34. Lấy danh sách User đã thả cảm xúc vào xem chi tiết [Auth]
+- **Method:** `GET`
+- **URL:** `/reactions/post/:postId?page=1&limit=20`
+
+#### 35. Xem Thống kê Cảm xúc của bài viết [Auth]
+- **Method:** `GET`
+- **URL:** `/reactions/:postId/summary`
+- **Ví dụ mục đích:** Bạn sẽ nhận được tổng số lượng từng loại cảm xúc (có bao nhiêu like, bao nhiêu haha...) kèm theo cảm xúc hiện tại mà CHÍNH BẠN đang thả cho bài viết này.
+
+#### 36. Xóa Cảm xúc (Bỏ Like/Haha/...) [Auth]
+- **Method:** `DELETE`
+- **URL:** `/reactions/:reactionId`

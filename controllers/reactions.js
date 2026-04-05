@@ -241,7 +241,7 @@ exports.deleteReaction = async (req, res) => {
     }
 
     // Check authorization
-    if (reaction.user.toString() !== userId) {
+    if (reaction.user.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Bạn không có quyền xóa reaction này',

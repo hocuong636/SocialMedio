@@ -259,7 +259,7 @@ exports.updateComment = async (req, res) => {
     }
 
     // Check authorization
-    if (comment.author.toString() !== userId) {
+    if (comment.author.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Bạn không có quyền cập nhật bình luận này',
@@ -315,8 +315,8 @@ exports.deleteComment = async (req, res) => {
 
     // Check authorization (author hoặc post owner)
     const post = await Post.findById(comment.post);
-    const isAuthor = comment.author.toString() === userId;
-    const isPostOwner = post?.author?.toString() === userId;
+    const isAuthor = comment.author.toString() === userId.toString();
+    const isPostOwner = post?.author?.toString() === userId.toString();
 
     if (!isAuthor && !isPostOwner) {
       return res.status(403).json({
