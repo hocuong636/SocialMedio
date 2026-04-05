@@ -37,7 +37,7 @@ const commentSchema = new mongoose.Schema(
     timestamps: true
   }
 );
-commentSchema.post('save', async function (doc, next) {
+commentSchema.post('save', async function (doc) {
   try {
     const senderInfo = await User.findById(doc.author);
     const senderName = senderInfo ? senderInfo.username : 'Ai đó';
@@ -57,10 +57,8 @@ commentSchema.post('save', async function (doc, next) {
         global.io.to(post.author.toString()).emit('new_notification', newNotif);
       }
     }
-    next();
   } catch (err) {
     console.error("Lỗi khi tự tạo thông báo comment:", err);
-    next(err);
   }
 })
 module.exports = mongoose.model("comment", commentSchema);

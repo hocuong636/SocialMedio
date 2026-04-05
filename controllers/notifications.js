@@ -1,5 +1,4 @@
 const Notification = require("../schemas/notifications.js");
-const userProfiles = require("../schemas/userProfiles");
 
 module.exports = {
     //get all noti cua user
@@ -29,11 +28,15 @@ module.exports = {
         try {
             //lay id tbao tren thanh params
             const notifId = req.params.id;
-            const notif = await Notification.findByIdAndUpdate(
-                notifId,
+            const userId = req.user._id;
+            const notif = await Notification.findOneAndUpdate(
+                { _id: notifId, recipient: userId },
                 { isRead: true },
                 { new: true }
             );
+            if (!notif) {
+                return res.status(404).json({ success: false, message: "Thông báo không tồn tại" });
+            }
             res.status(200).json({ success: true, data: notif });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });

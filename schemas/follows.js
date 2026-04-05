@@ -23,7 +23,7 @@ const followSchema = new mongoose.Schema(
 
 // Một user chỉ có thể follow 1 user khác 1 lần
 followSchema.index({ follower: 1, following: 1 }, { unique: true });
-followSchema.post('save', async function (doc, next) {
+followSchema.post('save', async function (doc) {
   try {
     const senderInfo = await User.findById(doc.follower);
     const senderName = senderInfo ? senderInfo.username : 'Ai đó';
@@ -38,10 +38,8 @@ followSchema.post('save', async function (doc, next) {
     if (global.io) {
       global.io.to(doc.following.toString()).emit('new_notification', newNotif);
     }
-    next();
   } catch (err) {
     console.error("Lỗi khi tạo thông báo follow:", err);
-    next(err);
   }
 })
 module.exports = mongoose.model("follow", followSchema);

@@ -366,3 +366,65 @@ Hệ thống cung cấp cơ chế Check Login qua 2 phương thức: **Cookies**
 - **Method:** `GET`
 - **URL:** `/messages/:conversationId`
 - **Mục đích:** Lấy toàn bộ các dòng tin nhắn bên trong 1 phòng chat cụ thể, sắp xếp theo thứ tự thời gian từ cũ đến mới để render lên cửa sổ khung chat.
+
+---
+
+### 🔔 Nhóm: Thông báo (Notifications) (`/notifications`)
+
+#### 45. Lấy danh sách Thông báo (có phân trang) [Auth]
+- **Method:** `GET`
+- **URL:** `/notifications`
+
+#### 46. Xem số lượng Thông báo CHƯA ĐỌC [Auth]
+- **Method:** `GET`
+- **URL:** `/notifications/unread-count`
+
+#### 47. Đánh dấu TẤT CẢ thông báo là đã đọc [Auth]
+- **Method:** `PATCH`
+- **URL:** `/notifications/read-all`
+
+#### 48. Đánh dấu 1 Thông báo cụ thể là đã đọc [Auth]
+- **Method:** `PATCH`
+- **URL:** `/notifications/:id/read`
+
+#### 49. Dọn dẹp/Xóa TẤT CẢ các thông báo đã đọc [Auth]
+- **Method:** `DELETE`
+- **URL:** `/notifications/all`
+
+#### 50. Xóa 1 Thông báo cụ thể [Auth]
+- **Method:** `DELETE`
+- **URL:** `/notifications/:id`
+
+---
+
+### 🚩 Nhóm: Báo cáo vi phạm (Reports) (`/reports`)
+
+#### 51. Tạo một Báo cáo (Tố cáo Post/Comment/User) [Auth]
+- **Method:** `POST`
+- **URL:** `/reports`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "targetType": "post",
+      "targetId": "660c123abc456...",
+      "reason": "Bài viết chứa nội dung spam"
+  }
+  ```
+  *(Lưu ý: `targetType` bắt buộc phải là `"post"`, `"comment"`, hoặc `"user"`)*
+
+*(⚠️ Các API dưới đây yêu cầu tài khoản phải có quyền Admin mới được gọi:)*
+
+#### 52. Lấy danh sách toàn bộ Báo cáo vi phạm [Admin]
+- **Method:** `GET`
+- **URL:** `/reports`
+
+#### 53. Xử lý trạng thái Báo cáo [Admin]
+- **Method:** `PATCH`
+- **URL:** `/reports/:id/status`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "status": "resolved"
+  }
+  ```
+  *(Lưu ý: `status` có thể truyền `"pending"`, `"resolved"`, hoặc `"rejected"`)*

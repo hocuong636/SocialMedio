@@ -29,7 +29,7 @@ const reactionSchema = new mongoose.Schema(
 // Một user chỉ có 1 reaction trên 1 post
 reactionSchema.index({ user: 1, post: 1 }, { unique: true });
 
-reactionSchema.post('save', async function (doc, next) {
+reactionSchema.post('save', async function (doc) {
   try {
     // 1. Tìm lấy bài viết để biết ai là tác giả
     const post = await Post.findById(doc.post);
@@ -66,10 +66,8 @@ reactionSchema.post('save', async function (doc, next) {
         global.io.to(post.author.toString()).emit('new_notification', newNotif);
       }
     }
-    next();
   } catch (error) {
     console.error("Lỗi khi tự tạo thông báo reaction:", error);
-    next(error);
   }
 });
 
