@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Bell, MessageCircle, Bookmark, Clock } from 'lucide-react'
+import { Home, Bell, MessageCircle, Clock } from 'lucide-react'
 
 const items = [
   { icon: Home, to: '/' },
   { icon: Bell, to: '/notifications' },
   { icon: MessageCircle, to: '/messages' },
-  { icon: Bookmark, to: '/saved' },
+
   { icon: Clock, to: '/history' },
 ]
 

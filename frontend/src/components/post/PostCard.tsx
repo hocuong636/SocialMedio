@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Heart, MessageCircle, MoreHorizontal, Trash2 } from 'lucide-react'
 import type { Post } from '../../types'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
@@ -24,7 +24,7 @@ function timeAgo(dateStr: string) {
 
 export default function PostCard({ post, onDelete, currentUserId }: PostCardProps) {
   const [liked, setLiked] = useState(false)
-  const [saved, setSaved] = useState(false)
+
   const [likeCount, setLikeCount] = useState(post.reactionsCount)
   const [showMenu, setShowMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -148,16 +148,7 @@ export default function PostCard({ post, onDelete, currentUserId }: PostCardProp
             <span>{post.commentsCount}</span>
           </button>
 
-          <button
-            onClick={() => setSaved((v) => !v)}
-            className={`ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-              saved
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-blue-500'
-            }`}
-          >
-            <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
-          </button>
+
         </div>
       </article>
 
