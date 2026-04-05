@@ -239,14 +239,23 @@ Hệ thống cung cấp cơ chế Check Login qua 2 phương thức: **Cookies**
   - Key: `cover` *(Type: File)*
   - Value: *(Chọn file ảnh)*
 
-#### 27. Upload Image cho Bài Viết [Auth]
+#### 27. Upload Ảnh chung (Dùng cho Bài Viết & Chat) [Auth]
 - **Method:** `POST`
 - **URL:** `/upload/image`
 - **Body** (form-data):
   - Key: `image` *(Type: File)*
-  - Value: *(Chọn file ảnh)*
+  - Value: *(Chọn file ảnh định dạng jpg, png, webp... Tối đa 5MB)*
 
-*(Sau khi gọi API Upload của Bài Viết thành công, máy chủ trả về dạng `/uploads/hinhanh.jpg`. Bạn sử dụng URL này để đặt vào mảng `images` khi gọi API tạo `POST` trong mục Nhóm Posts).*
+*(Ghi chú: Sau khi gọi thành công, API trả về `{"url": "/uploads/hinhanh.jpg"}`. Bạn lấy đường link này để đính kèm vào phần `images` của tạo Post hoặc `text` của tạo Message).*
+
+#### 27b. Upload Tài liệu (Dùng cho Chat) [Auth]
+- **Method:** `POST`
+- **URL:** `/upload/document`
+- **Body** (form-data):
+  - Key: `document` *(Type: File)*
+  - Value: *(Chọn file tài liệu định dạng PDF, Word, Excel. Tối đa 10MB)*
+
+*(Ghi chú: Tương tự như upload ảnh, lấy `url` trả về để gửi trong message với `type` là `"file"`).*
 
 ---
 
@@ -315,3 +324,45 @@ Hệ thống cung cấp cơ chế Check Login qua 2 phương thức: **Cookies**
 #### 36. Xóa Cảm xúc (Bỏ Like/Haha/...) [Auth]
 - **Method:** `DELETE`
 - **URL:** `/reactions/:reactionId`
+
+---
+
+### 💬 Nhóm: Conversations (Hội thoại) (`/conversations`)
+
+#### 37. Lấy danh sách tất cả phòng Chat (Inbox) [Auth]
+- **Method:** `GET`
+- **URL:** `/conversations`
+- **Mục đích:** Hiển thị danh sách tin nhắn ở thanh bên (Sidebar), bao gồm cả thông tin người đang chat cùng và tin nhắn cuối cùng (lastMessage) để làm đoạn trích dẫn (preview).
+
+#### 38. Bắt đầu/Mở cuộc hội thoại 1-1 [Auth]
+- **Method:** `POST`
+- **URL:** `/conversations`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "recipientId": "660c123abc456..." 
+  }
+  ```
+  *(Truyền ID của người bạn muốn nhắn tin. Nếu bạn và người này chưa có phòng chat nào, hệ thống sẽ tạo cái mới. Nếu đã từng chat, nó sẽ trả về phòng chat cũ.)*
+
+---
+
+### ✉️ Nhóm: Messages (Tin nhắn) (`/messages`)
+
+#### 39. Gửi tin nhắn mới [Auth]
+- **Method:** `POST`
+- **URL:** `/messages`
+- **Body** (raw -> JSON):
+  ```json
+  {
+      "conversationId": "660c456def789...", 
+      "type": "text", 
+      "text": "Chào bạn, khỏe không?"
+  }
+  ```
+  *(Lưu ý: `conversationId` là ID của phòng chat lấy từ API Conversation. Trường `type` chấp nhận `"text"`, `"image"` hoặc `"file"`. Nếu gửi ảnh, trường `text` bạn có thể điền link URL của hình ảnh trả về tải từ API `/upload/image`)*
+
+#### 40. Lấy Lịch sử tin nhắn của 1 phòng Chat [Auth]
+- **Method:** `GET`
+- **URL:** `/messages/:conversationId`
+- **Mục đích:** Lấy toàn bộ các dòng tin nhắn bên trong 1 phòng chat cụ thể, sắp xếp theo thứ tự thời gian từ cũ đến mới để render lên cửa sổ khung chat.
