@@ -33,11 +33,27 @@ var io = new Server(server, {
   }
 });
 
+//lưu vào global để các file schema có thể gọi được
+global.io = io;
 // Gắn io vào app để các route/controller có thể dùng: req.app.get('io')
 app.set('io', io);
 
 const chatHandler = require('../utils/chatHandler');
 chatHandler(io); // Truyền đối tượng io vào handler chúng ta vừa viết
+
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id);
+
+  //Chờ frontend bắn lên id của user đăng nhập để cho vào đúng "phòng"
+  socket.on('join_own_room', (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined room`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+  });
+});
 
 /**
  * Listen on provided port, on all network interfaces.
