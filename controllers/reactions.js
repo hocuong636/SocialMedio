@@ -168,19 +168,7 @@ exports.getReactionSummary = async (req, res) => {
     }
 
     // Group reactions by type
-    const reactionCounts = await Reaction.aggregate([
-      {
-        $match: {
-          post: new mongoose.Types.ObjectId(postId),
-        },
-      },
-      {
-        $group: {
-          _id: '$type',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const reactions = await Reaction.find({ post: postId }).select('type');
 
     // Initialize summary
     const summary = {
@@ -194,8 +182,10 @@ exports.getReactionSummary = async (req, res) => {
     };
 
     // Fill in counts
-    reactionCounts.forEach((item) => {
-      summary[item._id] = item.count;
+    reactions.forEach((r) => {
+      if (summary.hasOwnProperty(r.type)) {
+        summary[r.type]++;
+      }
     });
 
     // Get user's reaction (if logged in)
