@@ -35,7 +35,7 @@ export default function PostComposer({ user, onSubmit }: PostComposerProps) {
         const res = await api.post('/upload/image', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        setImages((prev) => [...prev, res.data.imageUrl])
+        setImages((prev) => [...prev, res.data.url])
       }
     } catch {
       // Upload failed silently

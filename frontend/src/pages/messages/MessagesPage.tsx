@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageCircle, Send, Search, User, Paperclip, Image as ImageIcon, FileText } from 'lucide-react'
+import { MessageCircle, Send, Search, User, Paperclip, Image as ImageIcon, FileText, Loader2 } from 'lucide-react'
 import { io, Socket } from 'socket.io-client'
 import axios from 'axios'
 import { useAuthStore } from '../../store/useAuthStore'
+import { userService } from '../../services/userService'
+import Avatar from '../../components/ui/Avatar'
 
 // Cấu hình URL Backend
 const SOCKET_URL = 'http://localhost:3000'
@@ -15,6 +17,12 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchResults, setShowSearchResults] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,15 +38,57 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const fetchConversations = async () => {
+    try {
+      const res = await axios.get('/api/v1/conversations')
+      setConversations(res.data)
+    } catch (err) { console.error(err) }
+  }
+
   useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const res = await axios.get('/api/v1/conversations')
-        setConversations(res.data)
-      } catch (err) { console.error(err) }
-    }
     fetchConversations()
   }, [])
+
+  // Search users for new conversation
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim()) {
+        setIsSearching(true)
+        try {
+          const users = await userService.searchUsers(searchQuery)
+          setSearchResults(users)
+          setShowSearchResults(true)
+        } catch (err) {
+          console.error(err)
+        } finally {
+          setIsSearching(false)
+        }
+      } else {
+        setSearchResults([])
+        setShowSearchResults(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
+
+  const startConversation = async (recipientId: string) => {
+    try {
+      const res = await axios.post('/api/v1/conversations', { recipientId })
+      const newConv = res.data
+      
+      // Update conversations list if not present
+      if (!conversations.find(c => c._id === newConv._id)) {
+        setConversations(prev => [newConv, ...prev])
+      }
+      
+      selectChat(newConv)
+      setSearchQuery('')
+      setShowSearchResults(false)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const selectChat = async (conv: any) => {
     setSelectedConversation(conv)
@@ -71,7 +121,6 @@ export default function MessagesPage() {
 
     setIsUploading(true)
     const formData = new FormData()
-    // Key 'image' hoặc 'document' phải khớp với multer ở backend
     formData.append(fileType === 'image' ? 'image' : 'document', file)
 
     try {
@@ -103,12 +152,42 @@ export default function MessagesPage() {
         
         {/* SIDEBAR */}
         <div className="w-1/3 border-r border-gray-100 flex flex-col bg-gray-50/30">
-          <div className="p-4 bg-white border-b border-gray-100">
+          <div className="p-4 bg-white border-b border-gray-100 relative">
             <h1 className="text-xl font-black text-gray-900 mb-4">Tin nhắn</h1>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
               <Search size={15} className="text-gray-400" />
-              <input type="text" placeholder="Tìm kiếm..." className="flex-1 bg-transparent text-sm focus:outline-none" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm người dùng..." 
+                className="flex-1 bg-transparent text-sm focus:outline-none" 
+              />
+              {isSearching && <Loader2 size={14} className="animate-spin text-blue-500" />}
             </div>
+
+            {/* Search Results Overlay */}
+            {showSearchResults && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-64 overflow-y-auto m-2">
+                {searchResults.length > 0 ? (
+                  searchResults.map(u => (
+                    <div 
+                      key={u._id} 
+                      onClick={() => startConversation(u._id)}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-none"
+                    >
+                      <Avatar src={u.avatarUrl} name={u.fullName || u.username} size="sm" />
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">{u.fullName || u.username}</p>
+                        <p className="text-[10px] text-gray-400">@{u.username}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-xs text-gray-400">Không tìm thấy kết quả</div>
+                )}
+              </div>
+            )}
           </div>
           <div className="overflow-y-auto flex-1">
             {conversations.map((conv) => {

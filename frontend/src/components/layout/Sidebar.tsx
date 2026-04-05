@@ -7,6 +7,8 @@ import {
   LogOut,
   User,
   Rss,
+  Search,
+  Bookmark,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUIStore } from '../../store/useUIStore'
@@ -15,9 +17,10 @@ import Avatar from '../ui/Avatar'
 
 const navItems = [
   { icon: Home, label: 'Bảng tin', to: '/' },
+  { icon: Search, label: 'Tìm kiếm', to: '/search' },
   { icon: Bell, label: 'Thông báo', to: '/notifications' },
   { icon: MessageCircle, label: 'Tin nhắn', to: '/messages' },
-
+  { icon: Bookmark, label: 'Bài viết đã lưu', to: '/saved' },
   { icon: Clock, label: 'Lịch sử xem', to: '/history' },
 ]
 

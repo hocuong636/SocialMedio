@@ -52,4 +52,9 @@ export const userService = {
     })
     return res.data as User
   },
+
+  async searchUsers(query: string): Promise<User[]> {
+    const res = await api.get('/users/search', { params: { q: query } })
+    return res.data as User[]
+  },
 }
