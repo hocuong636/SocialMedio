@@ -1,6 +1,12 @@
 module.exports = function (io) {
     io.on('connection', (socket) => {
-        console.log('Một người dùng đã kết nối:', socket.id);
+        console.log('Socket connected:', socket.id);
+
+        // Cho user join vào room riêng (dùng cho notification)
+        socket.on('join_own_room', (userId) => {
+            socket.join(userId);
+            console.log(`User ${userId} joined own room`);
+        });
 
         // Tham gia vào phòng chat cụ thể
         socket.on('join-room', (conversationId) => {
@@ -23,7 +29,7 @@ module.exports = function (io) {
 
         // Khi người dùng ngắt kết nối
         socket.on('disconnect', () => {
-            console.log('Người dùng đã ngắt kết nối:', socket.id);
+            console.log('Socket disconnected:', socket.id);
         });
     });
 };
