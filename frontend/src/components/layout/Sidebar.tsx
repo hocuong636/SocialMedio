@@ -3,7 +3,6 @@ import {
   Home,
   Bell,
   MessageCircle,
-  Bookmark,
   Clock,
   LogOut,
   User,
@@ -18,7 +17,7 @@ const navItems = [
   { icon: Home, label: 'Bảng tin', to: '/' },
   { icon: Bell, label: 'Thông báo', to: '/notifications' },
   { icon: MessageCircle, label: 'Tin nhắn', to: '/messages' },
-  { icon: Bookmark, label: 'Đã lưu', to: '/saved' },
+
   { icon: Clock, label: 'Lịch sử xem', to: '/history' },
 ]
 

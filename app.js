@@ -41,7 +41,7 @@ app.use('/api/v1/upload', require('./routes/upload'));
 
 // New modules from the image assignment
 app.use('/api/v1/conversations', require('./routes/conversations'));
-app.use('/api/v1/saved-posts', require('./routes/savedPosts'));
+
 app.use('/api/v1/view-histories', require('./routes/viewHistories'));
 app.use('/api/v1/follows', require('./routes/follows'));
 app.use('/api/v1/reactions', require('./routes/reactions'));
