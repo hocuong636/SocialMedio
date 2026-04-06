@@ -47,6 +47,7 @@ app.use('/api/v1/follows', require('./routes/follows'));
 app.use('/api/v1/reactions', require('./routes/reactions'));
 app.use('/api/v1/notifications', require('./routes/notifications'));
 app.use('/api/v1/reports', require('./routes/reports'));
+app.use('/api/v1/saved-posts', require('./routes/savedPosts'));
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/SocialMedia?directConnection=true';
 mongoose.connect(mongoUri);

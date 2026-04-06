@@ -99,4 +99,34 @@ router.put('/profile', CheckLogin, async function (req, res, next) {
     }
 });
 
-module.exports = router;
+// Tim kiem nguoi dung (username, fullName)
+router.get('/search', CheckLogin, async function (req, res, next) {
+    try {
+        let { q } = req.query;
+        if (!q) {
+            return res.status(400).send({ message: "Vui long nhap tu khoa tim kiem" });
+        }
+
+        // Tìm theo username hoặc fullName (không phân biệt hoa thường)
+        let users = await userModel.find({
+            $and: [
+                { isDeleted: false },
+                {
+                    $or: [
+                        { username: { $regex: q, $options: 'i' } },
+                        { fullName: { $regex: q, $options: 'i' } }
+                    ]
+                },
+                { _id: { $ne: req.user._id } } // Khong bao gom chinh minh
+            ]
+        })
+        .select('-password -forgotPasswordToken -forgotPasswordTokenExp -loginCount -lockTime')
+        .limit(20);
+
+        res.status(200).send(users);
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
+module.exports = router;

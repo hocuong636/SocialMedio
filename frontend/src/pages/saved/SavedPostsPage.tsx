@@ -68,6 +68,7 @@ export default function SavedPostsPage() {
           post={sp.post}
           currentUserId={user?._id}
           onDelete={(postId) => unsaveMutation.mutate(postId)}
+          defaultSaved={true}
         />
       ))}
     </div>

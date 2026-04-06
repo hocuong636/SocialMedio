@@ -9,7 +9,8 @@ import FeedPage from './pages/feed/FeedPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
 import MessagesPage from './pages/messages/MessagesPage'
-
+import SavedPostsPage from './pages/saved/SavedPostsPage'
+import SearchPage from './pages/search/SearchPage'
 import ViewHistoryPage from './pages/history/ViewHistoryPage'
 import Toast from './components/ui/Toast'
 import Spinner from './components/ui/Spinner'
@@ -74,10 +75,11 @@ export default function App() {
 
         <Route element={<AuthLayout />}>
           <Route index element={<FeedPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
-
+          <Route path="/saved" element={<SavedPostsPage />} />
           <Route path="/history" element={<ViewHistoryPage />} />
         </Route>
 

@@ -1,13 +1,20 @@
-import { useState } from 'react'
-import { Heart, MessageCircle, MoreHorizontal, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Bookmark } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Post } from '../../types'
+import { reactionService } from '../../services/reactionService'
+import { savedPostService } from '../../services/savedPostService'
+import { useUIStore } from '../../store/useUIStore'
+import { useAuthStore } from '../../store/useAuthStore'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
+import CommentSection from './CommentSection'
 
 interface PostCardProps {
   post: Post
   onDelete?: (id: string) => void
   currentUserId?: string
+  defaultSaved?: boolean
 }
 
 function timeAgo(dateStr: string) {
@@ -22,18 +29,79 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('vi-VN')
 }
 
-export default function PostCard({ post, onDelete, currentUserId }: PostCardProps) {
+export default function PostCard({ post, onDelete, currentUserId, defaultSaved = false }: PostCardProps) {
+  const queryClient = useQueryClient()
+  const { addToast } = useUIStore()
+  const { user } = useAuthStore() // Use full user instead of just currentUserId
+  
   const [liked, setLiked] = useState(false)
-
+  const [saved, setSaved] = useState(defaultSaved)
   const [likeCount, setLikeCount] = useState(post.reactionsCount)
   const [showMenu, setShowMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+
+  // Fetch initial reaction summary to check if user liked/saved
+  useEffect(() => {
+    reactionService.getReactionSummary(post._id).then(res => {
+      if (res.success) {
+        setLiked(!!res.data.userReaction)
+      }
+    })
+    // Also check if saved - this usually comes from the feed if we include it
+    // For now we'll rely on the specific save API if needed, 
+    // but a better way is to have isSaved in the post object from backend.
+  }, [post._id])
 
   const isOwner = currentUserId === post.author._id
 
+  const likeMutation = useMutation({
+    mutationFn: () => reactionService.addOrUpdateReaction(post._id, 'like'),
+    onSuccess: (res) => {
+      setLiked(!!res.data)
+      setLikeCount(prev => res.data ? prev + 1 : prev - 1)
+    }
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () => savedPostService.savePost(post._id),
+    onSuccess: () => {
+      setSaved(true)
+      addToast('Đã lưu bài viết', 'success')
+      queryClient.invalidateQueries({ queryKey: ['saved-posts'] })
+    },
+    onError: (err: any) => {
+      if (err.response?.status === 409) {
+        // Already saved, let's unsave
+        unsaveMutation.mutate()
+      } else {
+        addToast('Lưu bài viết thất bại', 'error')
+      }
+    }
+  })
+
+  const unsaveMutation = useMutation({
+    mutationFn: () => savedPostService.unsavePost(post._id),
+    onSuccess: () => {
+      setSaved(false)
+      addToast('Đã bỏ lưu bài viết', 'success')
+      queryClient.invalidateQueries({ queryKey: ['saved-posts'] })
+    },
+    onError: () => addToast('Bỏ lưu thất bại', 'error')
+  })
+
   const handleLike = () => {
-    setLiked((v) => !v)
-    setLikeCount((c) => (liked ? c - 1 : c + 1))
+    if (likeMutation.isPending) return
+    likeMutation.mutate()
+  }
+
+  const handleSave = () => {
+    if (saveMutation.isPending || unsaveMutation.isPending) return
+    if (saved) {
+      unsaveMutation.mutate()
+    } else {
+      saveMutation.mutate()
+    }
   }
 
   return (
@@ -130,26 +198,51 @@ export default function PostCard({ post, onDelete, currentUserId }: PostCardProp
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1 px-3 py-2 border-t border-gray-50">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-gray-50">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleLike}
+              disabled={likeMutation.isPending}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                liked
+                  ? 'text-red-500 bg-red-50'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-red-400'
+              }`}
+            >
+              <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
+              <span>{likeCount}</span>
+            </button>
+
+            <button 
+              onClick={() => setShowComments(!showComments)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                showComments ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:bg-gray-50 hover:text-blue-400'
+              }`}
+            >
+              <MessageCircle size={17} />
+              <span>{post.commentsCount}</span>
+            </button>
+          </div>
+
           <button
-            onClick={handleLike}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-              liked
-                ? 'text-red-500 bg-red-50'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-red-400'
+            onClick={handleSave}
+            disabled={saveMutation.isPending || unsaveMutation.isPending}
+            className={`flex items-center justify-center p-2 rounded-xl transition-colors cursor-pointer ${
+              saved
+                ? 'text-yellow-500 bg-yellow-50'
+                : 'text-gray-400 hover:bg-gray-50 hover:text-yellow-500'
             }`}
           >
-            <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
-            <span>{likeCount}</span>
+            <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
           </button>
-
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer">
-            <MessageCircle size={17} />
-            <span>{post.commentsCount}</span>
-          </button>
-
-
         </div>
+
+        {/* Comment Section */}
+        {showComments && (
+          <div className="border-t border-gray-50 bg-gray-50/30">
+            <CommentSection postId={post._id} currentUser={user || undefined} />
+          </div>
+        )}
       </article>
 
       {/* Delete confirmation modal */}
@@ -183,3 +276,4 @@ export default function PostCard({ post, onDelete, currentUserId }: PostCardProp
     </>
   )
 }
+
