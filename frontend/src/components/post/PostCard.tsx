@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Bookmark } from 'lucide-react'
+import { MessageCircle, MoreHorizontal, Trash2, Bookmark } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Post } from '../../types'
 import { reactionService } from '../../services/reactionService'
@@ -9,6 +9,8 @@ import { useAuthStore } from '../../store/useAuthStore'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
 import CommentSection from './CommentSection'
+import ReactionPicker from './ReactionPicker'
+import type { Reaction as ReactionType } from '../../types'
 
 interface PostCardProps {
   post: Post
@@ -34,9 +36,9 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
   const { addToast } = useUIStore()
   const { user } = useAuthStore() // Use full user instead of just currentUserId
   
-  const [liked, setLiked] = useState(false)
+  const [userReaction, setUserReaction] = useState<ReactionType['type'] | null>(null)
   const [saved, setSaved] = useState(defaultSaved)
-  const [likeCount, setLikeCount] = useState(post.reactionsCount)
+  const [reactionsCount, setReactionsCount] = useState(post.reactionsCount)
   const [showMenu, setShowMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -45,7 +47,7 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
   useEffect(() => {
     reactionService.getReactionSummary(post._id).then(res => {
       if (res.success) {
-        setLiked(!!res.data.userReaction)
+        setUserReaction(res.data.userReaction as ReactionType['type'] | null)
       }
     })
     // Also check if saved - this usually comes from the feed if we include it
@@ -55,13 +57,20 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
 
   const isOwner = currentUserId === post.author._id
 
-  const likeMutation = useMutation({
-    mutationFn: () => reactionService.addOrUpdateReaction(post._id, 'like'),
-    onSuccess: (res) => {
-      setLiked(!!res.data)
-      setLikeCount(prev => res.data ? prev + 1 : prev - 1)
+  // Reaction removed since we use ReactionPicker directly now
+  // but keeping a version of handleReactionChange for count management
+  const handleReactionChange = (reaction: ReactionType | null) => {
+    // If we had a reaction before and now we don't, decrement
+    // If we didn't have one and now we do, increment
+    // If we changed types, count stays the same
+    if (userReaction && !reaction) {
+      setReactionsCount(prev => prev - 1)
+    } else if (!userReaction && reaction) {
+      setReactionsCount(prev => prev + 1)
     }
-  })
+    
+    setUserReaction(reaction?.type || null)
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => savedPostService.savePost(post._id),
@@ -89,11 +98,6 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
     },
     onError: () => addToast('Bỏ lưu thất bại', 'error')
   })
-
-  const handleLike = () => {
-    if (likeMutation.isPending) return
-    likeMutation.mutate()
-  }
 
   const handleSave = () => {
     if (saveMutation.isPending || unsaveMutation.isPending) return
@@ -200,18 +204,16 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
         {/* Actions */}
         <div className="flex items-center justify-between px-3 py-2 border-t border-gray-50">
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleLike}
-              disabled={likeMutation.isPending}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                liked
-                  ? 'text-red-500 bg-red-50'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-red-400'
-              }`}
-            >
-              <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
-              <span>{likeCount}</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <ReactionPicker
+                postId={post._id}
+                userReaction={userReaction}
+                onReactionChange={handleReactionChange}
+              />
+              <span className="text-xs font-semibold text-gray-500 ml-[-4px] mr-2">
+                {reactionsCount}
+              </span>
+            </div>
 
             <button 
               onClick={() => setShowComments(!showComments)}

@@ -4,7 +4,8 @@ let viewHistoryModel = require('../schemas/viewHistories');
 let postModel = require('../schemas/posts');
 let { CheckLogin } = require('../utils/authHandler');
 
-// Ghi nhan lich su xem bai viet
+// Ghi nhận lịch sử xem bài viết
+// POST /api/v1/view-histories
 router.post('/', CheckLogin, async function (req, res, next) {
     try {
         let { postId } = req.body;
@@ -12,11 +13,13 @@ router.post('/', CheckLogin, async function (req, res, next) {
             return res.status(400).send({ message: "postId khong duoc de trong" });
         }
 
+        // Kiểm tra bài viết tồn tại
         let post = await postModel.findOne({ _id: postId, isDeleted: false });
         if (!post) {
             return res.status(404).send({ message: "Bai viet khong ton tai" });
         }
 
+        // Cập nhật hoặc tạo mới bản ghi lịch sử xem (upsert)
         let viewHistory = await viewHistoryModel.findOneAndUpdate(
             { user: req.user._id, post: postId },
             { user: req.user._id, post: postId },
@@ -29,7 +32,8 @@ router.post('/', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay danh sach lich su xem cua user hien tai
+// Lấy danh sách lịch sử xem của người dùng hiện tại
+// GET /api/v1/view-histories
 router.get('/', CheckLogin, async function (req, res, next) {
     try {
         let page = parseInt(req.query.page) || 1;
@@ -50,7 +54,7 @@ router.get('/', CheckLogin, async function (req, res, next) {
             .skip(skip)
             .limit(limit);
 
-        // Loc bo nhung record ma post da bi xoa (populate tra ve null)
+        // Lọc bỏ những bản ghi mà bài viết gốc đã bị xóa (populate trả về null)
         viewHistories = viewHistories.filter(item => item.post !== null);
 
         res.status(200).send({
@@ -64,7 +68,8 @@ router.get('/', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Xoa 1 muc lich su xem
+// Xóa một mục lịch sử xem cụ thể
+// DELETE /api/v1/view-histories/:id
 router.delete('/:id', CheckLogin, async function (req, res, next) {
     try {
         let result = await viewHistoryModel.findOneAndDelete({
@@ -80,7 +85,8 @@ router.delete('/:id', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Xoa toan bo lich su xem cua user hien tai
+// Xóa toàn bộ lịch sử xem của người dùng hiện tại
+// DELETE /api/v1/view-histories
 router.delete('/', CheckLogin, async function (req, res, next) {
     try {
         await viewHistoryModel.deleteMany({ user: req.user._id });

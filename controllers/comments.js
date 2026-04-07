@@ -4,15 +4,13 @@ const User = require('../schemas/users');
 const mongoose = require('mongoose');
 const { validateCommentContent } = require('../utils/validator');
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CREATE - Tạo bình luận mới
-// ═══════════════════════════════════════════════════════════════════════════════
+// Tạo một bình luận mới cho bài viết
 exports.createComment = async (req, res) => {
   try {
     const userId = req.user._id;
     const { post, content, parentComment } = req.body;
 
-    // Validate input
+    // Kiểm tra dữ liệu đầu vào
     if (!post || !content) {
       return res.status(400).json({
         success: false,
@@ -34,7 +32,7 @@ exports.createComment = async (req, res) => {
       });
     }
 
-    // Validate comment content
+    // Validate nội dung bình luận
     const validation = validateCommentContent(content);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -43,7 +41,7 @@ exports.createComment = async (req, res) => {
       });
     }
 
-    // Check post exists
+    // Kiểm tra bài viết có tồn tại không
     const postExists = await Post.findById(post);
     if (!postExists) {
       return res.status(404).json({
@@ -52,7 +50,7 @@ exports.createComment = async (req, res) => {
       });
     }
 
-    // If parentComment, check nó tồn tại
+    // Nếu là bình luận trả lời, kiểm tra bình luận cha có tồn tại không
     if (parentComment) {
       const parentCommentExists = await Comment.findById(parentComment);
       if (!parentCommentExists) {
@@ -63,7 +61,7 @@ exports.createComment = async (req, res) => {
       }
     }
 
-    // Tạo comment
+    // Khởi tạo và lưu bình luận mới
     const comment = new Comment({
       post,
       author: userId,
@@ -74,10 +72,10 @@ exports.createComment = async (req, res) => {
 
     await comment.save();
 
-    // Populate author info
+    // Lấy thêm thông tin tác giả để trả về cho Client
     await comment.populate('author', 'username fullName avatarUrl');
 
-    // Update post.commentsCount
+    // Tăng số lượng bình luận trong bài viết
     await Post.findByIdAndUpdate(post, {
       $inc: { commentsCount: 1 },
     });
@@ -97,9 +95,7 @@ exports.createComment = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// READ - Lấy bình luận của 1 bài viết (có phân trang)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Lấy danh sách bình luận của một bài viết (phân trang, chỉ lấy bình luận cấp 1)
 exports.getCommentsByPost = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -107,7 +103,7 @@ exports.getCommentsByPost = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Check post exists
+    // Kiểm tra bài viết có tồn tại không
     const postExists = await Post.findById(postId);
     if (!postExists) {
       return res.status(404).json({
@@ -116,7 +112,7 @@ exports.getCommentsByPost = async (req, res) => {
       });
     }
 
-    // Lấy comments (chỉ top-level, không nested)
+    // Lấy các bình luận gốc (không có parentComment)
     const comments = await Comment.find({
       post: postId,
       parentComment: null,
@@ -127,14 +123,14 @@ exports.getCommentsByPost = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Total count
+    // Đếm tổng số bình luận gốc để phục vụ phân trang
     const total = await Comment.countDocuments({
       post: postId,
       parentComment: null,
       isDeleted: false,
     });
 
-    // For each comment, count replies
+    // Đếm số lượng phản hồi cho mỗi bình luận
     const commentsWithReplies = await Promise.all(
       comments.map(async (comment) => {
         const repliesCount = await Comment.countDocuments({
@@ -168,9 +164,7 @@ exports.getCommentsByPost = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// READ - Lấy bình luận con (replies) của 1 bình luận
-// ═══════════════════════════════════════════════════════════════════════════════
+// Lấy danh sách các phản hồi (replies) của một bình luận
 exports.getReplies = async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -178,7 +172,7 @@ exports.getReplies = async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
     const skip = (page - 1) * limit;
 
-    // Check parent comment exists
+    // Kiểm tra bình luận cha có tồn tại không
     const parentComment = await Comment.findById(commentId);
     if (!parentComment) {
       return res.status(404).json({
@@ -187,7 +181,7 @@ exports.getReplies = async (req, res) => {
       });
     }
 
-    // Lấy replies
+    // Lấy danh sách phản hồi
     const replies = await Comment.find({
       parentComment: commentId,
       isDeleted: false,
@@ -197,7 +191,7 @@ exports.getReplies = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Total count
+    // Đếm tổng số phản hồi cho phân trang
     const total = await Comment.countDocuments({
       parentComment: commentId,
       isDeleted: false,
@@ -223,16 +217,14 @@ exports.getReplies = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// UPDATE - Cập nhật bình luận (chỉ author mới cập nhật được)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Cập nhật nội dung của một bình luận (chỉ tác giả mới có quyền)
 exports.updateComment = async (req, res) => {
   try {
     const userId = req.user._id;
     const { commentId } = req.params;
     const { content } = req.body;
 
-    // Validate input
+    // Kiểm tra dữ liệu đầu vào
     if (!content) {
       return res.status(400).json({
         success: false,
@@ -240,7 +232,6 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Validate comment content
     const validation = validateCommentContent(content);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -249,7 +240,7 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Find comment
+    // Tìm bình luận cần cập nhật
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json({
@@ -258,7 +249,7 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Check authorization
+    // Kiểm tra quyền sở hữu bình luận
     if (comment.author.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -266,7 +257,6 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Check if already deleted
     if (comment.isDeleted) {
       return res.status(410).json({
         success: false,
@@ -274,11 +264,10 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Update
+    // Cập nhật và lưu lại
     comment.content = content.trim();
     await comment.save();
 
-    // Populate author info
     await comment.populate('author', 'username fullName avatarUrl');
 
     return res.status(200).json({
@@ -296,15 +285,13 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DELETE - Xóa bình luận (soft delete)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Xóa một bình luận (sử dụng soft delete)
 exports.deleteComment = async (req, res) => {
   try {
     const userId = req.user._id;
     const { commentId } = req.params;
 
-    // Find comment
+    // Tìm bình luận cần xóa
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json({
@@ -313,7 +300,7 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    // Check authorization (author hoặc post owner)
+    // Kiểm tra quyền: chỉ tác giả bình luận hoặc chủ bài viết mới được xóa
     const post = await Post.findById(comment.post);
     const isAuthor = comment.author.toString() === userId.toString();
     const isPostOwner = post?.author?.toString() === userId.toString();
@@ -325,7 +312,6 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    // Check if already deleted
     if (comment.isDeleted) {
       return res.status(410).json({
         success: false,
@@ -333,11 +319,11 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    // Soft delete
+    // Thực hiện soft delete
     comment.isDeleted = true;
     await comment.save();
 
-    // Update post.commentsCount (giảm đi)
+    // Giảm số lượng bình luận của bài viết
     await Post.findByIdAndUpdate(comment.post, {
       $inc: { commentsCount: -1 },
     });

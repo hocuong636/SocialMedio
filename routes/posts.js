@@ -4,7 +4,8 @@ const postModel = require('../schemas/posts');
 const { CheckLogin } = require('../utils/authHandler');
 const { CreatePostValidator, validatedResult } = require('../utils/validator');
 
-// GET /api/v1/posts - Lấy feed (bài viết public hoặc của bạn bè)
+// Lấy danh sách bài viết cho feed (bài viết công khai)
+// GET /api/v1/posts
 router.get('/', CheckLogin, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -25,7 +26,8 @@ router.get('/', CheckLogin, async (req, res) => {
     }
 });
 
-// GET /api/v1/posts/user/:userId - Lấy bài viết của 1 user
+// Lấy danh sách bài viết của một người dùng cụ thể
+// GET /api/v1/posts/user/:userId
 router.get('/user/:userId', CheckLogin, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -51,7 +53,8 @@ router.get('/user/:userId', CheckLogin, async (req, res) => {
     }
 });
 
-// GET /api/v1/posts/:id - Lấy chi tiết 1 bài viết
+// Lấy thông tin chi tiết của một bài viết
+// GET /api/v1/posts/:id
 router.get('/:id', CheckLogin, async (req, res) => {
     try {
         const post = await postModel.findOne({ _id: req.params.id, isDeleted: false })
@@ -65,13 +68,15 @@ router.get('/:id', CheckLogin, async (req, res) => {
     }
 });
 
-// POST /api/v1/posts - Tạo bài viết mới
+// Tạo một bài viết mới
+// POST /api/v1/posts
 router.post('/', CheckLogin, CreatePostValidator, validatedResult, async (req, res) => {
     try {
         const { content, visibility, images } = req.body;
         if (!content || !content.trim()) {
             return res.status(400).json({ message: 'Nội dung bài viết không được để trống' });
         }
+        // Tạo bài viết mới trong DB
         const newPost = new postModel({
             author: req.user._id,
             content: content.trim(),
@@ -89,13 +94,15 @@ router.post('/', CheckLogin, CreatePostValidator, validatedResult, async (req, r
     }
 });
 
-// PUT /api/v1/posts/:id - Cập nhật bài viết
+// Cập nhật thông tin bài viết
+// PUT /api/v1/posts/:id
 router.put('/:id', CheckLogin, CreatePostValidator, validatedResult, async (req, res) => {
     try {
         const post = await postModel.findOne({ _id: req.params.id, isDeleted: false });
         if (!post) {
             return res.status(404).json({ message: "Không tìm thấy bài viết" });
         }
+        // Kiểm tra quyền sở hữu
         if (post.author.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Bạn không có quyền chỉnh sửa bài viết này" });
         }
@@ -112,16 +119,19 @@ router.put('/:id', CheckLogin, CreatePostValidator, validatedResult, async (req,
     }
 });
 
-// DELETE /api/v1/posts/:id - Xóa bài viết (soft delete)
+// Xóa bài viết (soft delete)
+// DELETE /api/v1/posts/:id
 router.delete('/:id', CheckLogin, async (req, res) => {
     try {
         const post = await postModel.findOne({ _id: req.params.id, isDeleted: false });
         if (!post) {
             return res.status(404).json({ message: "Không tìm thấy bài viết" });
         }
+        // Kiểm tra quyền sở hữu
         if (post.author.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Bạn không có quyền xóa bài viết này" });
         }
+        // Đánh dấu là đã xóa
         post.isDeleted = true;
         await post.save();
         res.json({ message: 'Đã xóa bài viết' });

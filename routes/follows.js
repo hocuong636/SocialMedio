@@ -4,23 +4,24 @@ let followModel = require('../schemas/follows');
 let userModel = require('../schemas/users');
 let { CheckLogin } = require('../utils/authHandler');
 
-// Follow 1 user
+// Theo dõi một người dùng
+// POST /api/v1/follows/:userId
 router.post('/:userId', CheckLogin, async function (req, res, next) {
     try {
         let followingId = req.params.userId;
 
-        // Khong the tu follow chinh minh
+        // Không thể tự theo dõi chính mình
         if (req.user._id.toString() === followingId) {
             return res.status(400).send({ message: "Ban khong the tu follow chinh minh" });
         }
 
-        // Kiem tra user can follow co ton tai khong
+        // Kiểm tra người dùng cần theo dõi có tồn tại không
         let targetUser = await userModel.findOne({ _id: followingId, isDeleted: false });
         if (!targetUser) {
             return res.status(404).send({ message: "Nguoi dung khong ton tai" });
         }
 
-        // Kiem tra da follow chua
+        // Kiểm tra xem đã theo dõi chưa
         let existingFollow = await followModel.findOne({
             follower: req.user._id,
             following: followingId
@@ -42,7 +43,8 @@ router.post('/:userId', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Unfollow 1 user
+// Hủy theo dõi một người dùng
+// DELETE /api/v1/follows/:userId
 router.delete('/:userId', CheckLogin, async function (req, res, next) {
     try {
         let followingId = req.params.userId;
@@ -62,7 +64,8 @@ router.delete('/:userId', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay danh sach nguoi minh dang follow (following)
+// Lấy danh sách người dùng mà mình đang theo dõi
+// GET /api/v1/follows/following
 router.get('/following', CheckLogin, async function (req, res, next) {
     try {
         let page = parseInt(req.query.page) || 1;
@@ -90,7 +93,8 @@ router.get('/following', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay danh sach nguoi dang follow minh (followers)
+// Lấy danh sách người dùng đang theo dõi mình
+// GET /api/v1/follows/followers
 router.get('/followers', CheckLogin, async function (req, res, next) {
     try {
         let page = parseInt(req.query.page) || 1;
@@ -118,7 +122,8 @@ router.get('/followers', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Kiem tra da follow 1 user chua
+// Kiểm tra trạng thái theo dõi đối với một người dùng
+// GET /api/v1/follows/check/:userId
 router.get('/check/:userId', CheckLogin, async function (req, res, next) {
     try {
         let follow = await followModel.findOne({
@@ -132,7 +137,8 @@ router.get('/check/:userId', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay danh sach following cua 1 user bat ky
+// Lấy danh sách người đang theo dõi của một user bất kỳ
+// GET /api/v1/follows/:userId/following
 router.get('/:userId/following', CheckLogin, async function (req, res, next) {
     try {
         let page = parseInt(req.query.page) || 1;
@@ -160,7 +166,8 @@ router.get('/:userId/following', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay danh sach followers cua 1 user bat ky
+// Lấy danh sách người theo dõi của một user bất kỳ
+// GET /api/v1/follows/:userId/followers
 router.get('/:userId/followers', CheckLogin, async function (req, res, next) {
     try {
         let page = parseInt(req.query.page) || 1;

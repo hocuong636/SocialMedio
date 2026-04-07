@@ -1,7 +1,7 @@
 const Notification = require("../schemas/notifications.js");
 
 module.exports = {
-    //get all noti cua user
+    // Lấy danh sách thông báo của người dùng (tối đa 20 thông báo mới nhất)
     getAllNotifications: async (req, res) => {
         try {
             const userId = req.user._id;
@@ -23,10 +23,11 @@ module.exports = {
             });
         }
     },
-    //mark as read
+
+    // Đánh dấu một thông báo cụ thể là đã đọc
     markAsRead: async (req, res) => {
         try {
-            //lay id tbao tren thanh params
+            // Lấy ID thông báo từ tham số URL
             const notifId = req.params.id;
             const userId = req.user._id;
             const notif = await Notification.findOneAndUpdate(
@@ -42,7 +43,8 @@ module.exports = {
             res.status(500).json({ success: false, message: err.message });
         }
     },
-    //mark all as read
+
+    // Đánh dấu tất cả thông báo chưa đọc của người dùng là đã đọc
     markAllAsRead: async (req, res) => {
         try {
             const userId = req.user._id;
@@ -55,7 +57,8 @@ module.exports = {
             res.status(500).json({ success: false, message: err.message });
         }
     },
-    //get unread count
+
+    // Lấy số lượng thông báo chưa đọc
     getUnreadCount: async (req, res) => {
         try {
             const userId = req.user._id;
@@ -68,7 +71,8 @@ module.exports = {
             res.status(500).json({ success: false, message: err.message });
         }
     },
-    //delete 1 notif
+
+    // Xóa một thông báo cụ thể
     deleteNotification: async (req, res) => {
         try {
             const notifId = req.params.id;
@@ -83,7 +87,8 @@ module.exports = {
             res.status(500).json({ success: false, message: err.message })
         }
     },
-    //delete all noti
+
+    // Xóa tất cả các thông báo đã được đọc
     deleteAllNotification: async (req, res) => {
         try {
             const userId = req.user._id;
@@ -93,7 +98,7 @@ module.exports = {
             });
             res.status(200).json({ success: true, message: "Đã xóa tất cả thông báo đã đọc" });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message }); // Sửa chữ startu thành status
+            res.status(500).json({ success: false, message: err.message });
         }
     }
 }

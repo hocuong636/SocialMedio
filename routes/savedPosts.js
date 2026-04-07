@@ -4,7 +4,8 @@ const savedPostModel = require('../schemas/savedPosts');
 const postModel = require('../schemas/posts');
 const { CheckLogin } = require('../utils/authHandler');
 
-// GET /api/v1/saved-posts - Lấy danh sách bài viết đã lưu
+// Lấy danh sách bài viết đã lưu của người dùng hiện tại
+// GET /api/v1/saved-posts
 router.get('/', CheckLogin, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -35,7 +36,8 @@ router.get('/', CheckLogin, async (req, res) => {
     }
 });
 
-// POST /api/v1/saved-posts - Lưu bài viết
+// Lưu một bài viết vào danh sách đã lưu
+// POST /api/v1/saved-posts
 router.post('/', CheckLogin, async (req, res) => {
     try {
         const { postId } = req.body;
@@ -43,7 +45,7 @@ router.post('/', CheckLogin, async (req, res) => {
             return res.status(400).json({ message: "Thiếu postId" });
         }
 
-        // Kiểm tra bài viết tồn tại
+        // Kiểm tra bài viết tồn tại và chưa bị xóa
         const post = await postModel.findOne({ _id: postId, isDeleted: false });
         if (!post) {
             return res.status(404).json({ message: "Không tìm thấy bài viết" });
@@ -72,7 +74,8 @@ router.post('/', CheckLogin, async (req, res) => {
     }
 });
 
-// DELETE /api/v1/saved-posts/:postId - Bỏ lưu bài viết
+// Bỏ lưu một bài viết cụ thể
+// DELETE /api/v1/saved-posts/:postId
 router.delete('/:postId', CheckLogin, async (req, res) => {
     try {
         const result = await savedPostModel.findOneAndDelete({

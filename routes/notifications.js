@@ -4,22 +4,28 @@ var router = express.Router();
 const notificationController = require('../controllers/notifications.js');
 let { CheckLogin } = require('../utils/authHandler');
 
-//lay so luong thong bao chua doc
+// Lấy số lượng thông báo chưa đọc
+// GET /api/v1/notifications/unread-count
 router.get('/unread-count', CheckLogin, notificationController.getUnreadCount);
 
-//lay danh sach thong bao
+// Lấy danh sách thông báo
+// GET /api/v1/notifications
 router.get('/', CheckLogin, notificationController.getAllNotifications);
 
-//danh dau tat ca la da doc
+// Đánh dấu tất cả thông báo là đã đọc
+// PATCH /api/v1/notifications/read-all
 router.patch('/read-all', CheckLogin, notificationController.markAllAsRead);
 
-//danh dau 1 thong bao la da doc
+// Đánh dấu một thông báo cụ thể là đã đọc
+// PATCH /api/v1/notifications/:id/read
 router.patch('/:id/read', CheckLogin, notificationController.markAsRead);
 
-//xoa tat ca thong bao da doc
+// Xóa tất cả thông báo
+// DELETE /api/v1/notifications/all
 router.delete('/all', CheckLogin, notificationController.deleteAllNotification);
 
-//xoa 1 thong bao
+// Xóa một thông báo cụ thể
+// DELETE /api/v1/notifications/:id
 router.delete('/:id', CheckLogin, notificationController.deleteNotification);
 
 module.exports = router;

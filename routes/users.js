@@ -4,7 +4,8 @@ let userModel = require('../schemas/users');
 let userProfileModel = require('../schemas/userProfiles');
 let { CheckLogin } = require('../utils/authHandler');
 
-// Lay thong tin profile (user + userProfile)
+// Lấy thông tin hồ sơ của người dùng hiện tại (bao gồm profile mở rộng)
+// GET /api/v1/users/profile
 router.get('/profile', CheckLogin, async function (req, res, next) {
     try {
         let profile = await userProfileModel.findOne({ user: req.user._id })
@@ -22,7 +23,8 @@ router.get('/profile', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Lay thong tin user theo username (public)
+// Lấy thông tin người dùng theo tên tài khoản (username)
+// GET /api/v1/users/by-username/:username
 router.get('/by-username/:username', CheckLogin, async function (req, res, next) {
     try {
         let user = await userModel.findOne({
@@ -41,13 +43,15 @@ router.get('/by-username/:username', CheckLogin, async function (req, res, next)
     }
 });
 
-// Cap nhat thong tin user (fullName, bio)
+// Cập nhật thông tin cơ bản của người dùng (fullName, bio)
+// PUT /api/v1/users/info
 router.put('/info', CheckLogin, async function (req, res, next) {
     try {
         let { fullName, bio } = req.body;
         let updateData = {};
         if (fullName !== undefined) updateData.fullName = fullName;
         if (bio !== undefined) {
+            // Giới hạn độ dài bio
             if (bio.length > 500) {
                 return res.status(400).send({ message: "Bio khong duoc qua 500 ky tu" });
             }
@@ -67,7 +71,8 @@ router.put('/info', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Cap nhat thong tin profile mo rong (phone, dateOfBirth, gender, address, website)
+// Cập nhật thông tin hồ sơ mở rộng (phone, ngày sinh, giới tính, địa chỉ, website)
+// PUT /api/v1/users/profile
 router.put('/profile', CheckLogin, async function (req, res, next) {
     try {
         let { phone, dateOfBirth, gender, address, website } = req.body;
@@ -75,6 +80,7 @@ router.put('/profile', CheckLogin, async function (req, res, next) {
         if (phone !== undefined) updateData.phone = phone;
         if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
         if (gender !== undefined) {
+            // Kiểm tra giá trị giới tính hợp lệ
             if (!['male', 'female', 'other', ''].includes(gender)) {
                 return res.status(400).send({ message: "Gender khong hop le" });
             }
@@ -99,7 +105,8 @@ router.put('/profile', CheckLogin, async function (req, res, next) {
     }
 });
 
-// Tim kiem nguoi dung (username, fullName)
+// Tìm kiếm người dùng theo username hoặc fullName
+// GET /api/v1/users/search
 router.get('/search', CheckLogin, async function (req, res, next) {
     try {
         let { q } = req.query;
@@ -107,7 +114,7 @@ router.get('/search', CheckLogin, async function (req, res, next) {
             return res.status(400).send({ message: "Vui long nhap tu khoa tim kiem" });
         }
 
-        // Tìm theo username hoặc fullName (không phân biệt hoa thường)
+        // Tìm kiếm theo username hoặc fullName (không phân biệt hoa thường)
         let users = await userModel.find({
             $and: [
                 { isDeleted: false },
@@ -117,7 +124,7 @@ router.get('/search', CheckLogin, async function (req, res, next) {
                         { fullName: { $regex: q, $options: 'i' } }
                     ]
                 },
-                { _id: { $ne: req.user._id } } // Khong bao gom chinh minh
+                { _id: { $ne: req.user._id } } // Không bao gồm chính mình trong kết quả
             ]
         })
         .select('-password -forgotPasswordToken -forgotPasswordTokenExp -loginCount -lockTime')

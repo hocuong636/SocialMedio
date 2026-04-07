@@ -3,15 +3,13 @@ const Post = require('../schemas/posts');
 const mongoose = require('mongoose');
 const { validateReactionType } = require('../utils/validator');
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CREATE/UPDATE - Thêm hoặc cập nhật reaction (one user, one reaction per post)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Thêm mới hoặc cập nhật cảm xúc (reaction) của người dùng cho bài viết
 exports.addOrUpdateReaction = async (req, res) => {
   try {
     const userId = req.user._id;
     const { post, type } = req.body;
 
-    // Validate input
+    // Kiểm tra dữ liệu đầu vào
     if (!post || !type) {
       return res.status(400).json({
         success: false,
@@ -19,7 +17,7 @@ exports.addOrUpdateReaction = async (req, res) => {
       });
     }
 
-    // Validate reaction type
+    // Kiểm tra loại cảm xúc có hợp lệ không
     const validation = validateReactionType(type);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -28,7 +26,7 @@ exports.addOrUpdateReaction = async (req, res) => {
       });
     }
 
-    // Check post exists
+    // Kiểm tra bài viết có tồn tại không
     const postExists = await Post.findById(post);
     if (!postExists) {
       return res.status(404).json({
@@ -37,13 +35,12 @@ exports.addOrUpdateReaction = async (req, res) => {
       });
     }
 
-    // Check if user already has reaction on this post
+    // Kiểm tra xem người dùng đã thả cảm xúc cho bài viết này chưa
     let reaction = await Reaction.findOne({ user: userId, post });
 
     if (reaction) {
-      // UPDATE existing reaction
+      // CẬP NHẬT: Nếu loại cảm xúc giống hệt cũ thì thực hiện gỡ bỏ (toggle off)
       if (reaction.type === type) {
-        // Same type, delete it (toggle off)
         await Reaction.findByIdAndDelete(reaction._id);
         await Post.findByIdAndUpdate(post, {
           $inc: { reactionsCount: -1 },
@@ -55,7 +52,7 @@ exports.addOrUpdateReaction = async (req, res) => {
           data: null,
         });
       } else {
-        // Different type, update reaction
+        // CẬP NHẬT: Nếu loại cảm xúc khác thì thay đổi sang loại mới
         reaction.type = type;
         await reaction.save();
 
@@ -68,7 +65,7 @@ exports.addOrUpdateReaction = async (req, res) => {
         });
       }
     } else {
-      // CREATE new reaction
+      // TẠO MỚI: Nếu chưa có thì tạo bản ghi cảm xúc mới
       reaction = new Reaction({
         user: userId,
         post,
@@ -77,10 +74,10 @@ exports.addOrUpdateReaction = async (req, res) => {
 
       await reaction.save();
 
-      // Populate user info
+      // Lấy thông tin user để trả về Client
       await reaction.populate('user', 'username fullName avatarUrl');
 
-      // Update post.reactionsCount
+      // Tăng số lượng cảm xúc của bài viết
       await Post.findByIdAndUpdate(post, {
         $inc: { reactionsCount: 1 },
       });
@@ -101,9 +98,7 @@ exports.addOrUpdateReaction = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// READ - Lấy tất cả reactions của 1 bài viết (có phân trang)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Lấy danh sách chi tiết các cảm xúc của một bài viết (phân trang)
 exports.getReactionsByPost = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -111,7 +106,7 @@ exports.getReactionsByPost = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Check post exists
+    // Kiểm tra bài viết tồn tại
     const postExists = await Post.findById(postId);
     if (!postExists) {
       return res.status(404).json({
@@ -120,14 +115,14 @@ exports.getReactionsByPost = async (req, res) => {
       });
     }
 
-    // Lấy reactions
+    // Lấy danh sách reactions
     const reactions = await Reaction.find({ post: postId })
       .populate('user', 'username fullName avatarUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    // Total count
+    // Đếm tổng số reactions để phân trang
     const total = await Reaction.countDocuments({ post: postId });
 
     return res.status(200).json({
@@ -150,15 +145,13 @@ exports.getReactionsByPost = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// READ - Lấy thống kê reactions của 1 bài viết + reaction của current user (nếu có)
-// ═══════════════════════════════════════════════════════════════════════════════
+// Lấy tóm tắt các loại cảm xúc của một bài viết và cảm xúc của user hiện tại
 exports.getReactionSummary = async (req, res) => {
   try {
     const userId = req.user?._id || null;
     const { postId } = req.params;
 
-    // Check post exists
+    // Kiểm tra bài viết tồn tại
     const postExists = await Post.findById(postId);
     if (!postExists) {
       return res.status(404).json({
@@ -167,10 +160,10 @@ exports.getReactionSummary = async (req, res) => {
       });
     }
 
-    // Group reactions by type
+    // Lấy tất cả reactions để thống kê
     const reactions = await Reaction.find({ post: postId }).select('type');
 
-    // Initialize summary
+    // Khởi tạo các nhóm cảm xúc
     const summary = {
       like: 0,
       haha: 0,
@@ -181,14 +174,14 @@ exports.getReactionSummary = async (req, res) => {
       userReaction: null,
     };
 
-    // Fill in counts
+    // Cộng dồn số lượng cho từng loại
     reactions.forEach((r) => {
       if (summary.hasOwnProperty(r.type)) {
         summary[r.type]++;
       }
     });
 
-    // Get user's reaction (if logged in)
+    // Lấy cảm xúc hiện tại của user đang đăng nhập (nếu có)
     if (userId) {
       const userReaction = await Reaction.findOne({
         user: userId,
@@ -213,15 +206,13 @@ exports.getReactionSummary = async (req, res) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DELETE - Xóa reaction của user
-// ═══════════════════════════════════════════════════════════════════════════════
+// Xóa cảm xúc của người dùng khỏi bài viết
 exports.deleteReaction = async (req, res) => {
   try {
     const userId = req.user._id;
     const { reactionId } = req.params;
 
-    // Find reaction
+    // Tìm reaction cần xóa
     const reaction = await Reaction.findById(reactionId);
     if (!reaction) {
       return res.status(404).json({
@@ -230,7 +221,7 @@ exports.deleteReaction = async (req, res) => {
       });
     }
 
-    // Check authorization
+    // Kiểm tra quyền sở hữu reaction
     if (reaction.user.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -238,11 +229,11 @@ exports.deleteReaction = async (req, res) => {
       });
     }
 
-    // Delete reaction
+    // Xóa reaction thực tế
     const postId = reaction.post;
     await Reaction.findByIdAndDelete(reactionId);
 
-    // Update post.reactionsCount
+    // Giảm số lượng reaction của bài viết
     await Post.findByIdAndUpdate(postId, {
       $inc: { reactionsCount: -1 },
     });

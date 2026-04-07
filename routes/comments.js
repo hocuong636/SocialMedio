@@ -3,36 +3,25 @@ const router = express.Router();
 const commentController = require('../controllers/comments');
 const { CheckLogin } = require('../utils/authHandler');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CREATE - Tạo bình luận mới
-// POST /comments
+// Tạo bình luận mới
+// POST /api/v1/comments
 // Body: { post, content, parentComment? }
-// ─────────────────────────────────────────────────────────────────────────────
 router.post('/', CheckLogin, commentController.createComment);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// READ - Lấy bình luận của 1 bài viết (có phân trang)
-// GET /comments/post/:postId?page=1&limit=10
-// ─────────────────────────────────────────────────────────────────────────────
+// Lấy danh sách bình luận của một bài viết (có phân trang)
+// GET /api/v1/comments/post/:postId
 router.get('/post/:postId', CheckLogin, commentController.getCommentsByPost);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// READ - Lấy bình luận con (replies)
-// GET /comments/:commentId/replies?page=1&limit=5
-// ─────────────────────────────────────────────────────────────────────────────
+// Lấy danh sách câu trả lời cho một bình luận
+// GET /api/v1/comments/:commentId/replies
 router.get('/:commentId/replies', CheckLogin, commentController.getReplies);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE - Cập nhật bình luận của chính user
-// PATCH /comments/:commentId
-// Body: { content }
-// ─────────────────────────────────────────────────────────────────────────────
+// Cập nhật nội dung bình luận
+// PATCH /api/v1/comments/:commentId
 router.patch('/:commentId', CheckLogin, commentController.updateComment);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DELETE - Xóa bình luận (soft delete)
-// DELETE /comments/:commentId
-// ─────────────────────────────────────────────────────────────────────────────
+// Xóa bình luận (soft delete)
+// DELETE /api/v1/comments/:commentId
 router.delete('/:commentId', CheckLogin, commentController.deleteComment);
 
 module.exports = router;
