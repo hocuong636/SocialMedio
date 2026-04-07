@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MessageCircle, MoreHorizontal, Trash2, Bookmark } from 'lucide-react'
+import { MessageCircle, MoreHorizontal, Trash2, Bookmark, AlertCircle } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Post } from '../../types'
 import { reactionService } from '../../services/reactionService'
@@ -9,8 +9,8 @@ import { useAuthStore } from '../../store/useAuthStore'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
 import CommentSection from './CommentSection'
+import ReportModal from '../report/ReportModal'
 import ReactionPicker from './ReactionPicker'
-import type { Reaction as ReactionType } from '../../types'
 
 interface PostCardProps {
   post: Post
@@ -34,43 +34,25 @@ function timeAgo(dateStr: string) {
 export default function PostCard({ post, onDelete, currentUserId, defaultSaved = false }: PostCardProps) {
   const queryClient = useQueryClient()
   const { addToast } = useUIStore()
-  const { user } = useAuthStore() // Use full user instead of just currentUserId
+  const { user } = useAuthStore()
   
-  const [userReaction, setUserReaction] = useState<ReactionType['type'] | null>(null)
+  const [userReaction, setUserReaction] = useState<string | null>(null)
   const [saved, setSaved] = useState(defaultSaved)
-  const [reactionsCount, setReactionsCount] = useState(post.reactionsCount)
+  const [likeCount, setLikeCount] = useState(post.reactionsCount)
   const [showMenu, setShowMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 
-  // Fetch initial reaction summary to check if user liked/saved
   useEffect(() => {
     reactionService.getReactionSummary(post._id).then(res => {
       if (res.success) {
-        setUserReaction(res.data.userReaction as ReactionType['type'] | null)
+        setUserReaction(res.data.userReaction)
       }
     })
-    // Also check if saved - this usually comes from the feed if we include it
-    // For now we'll rely on the specific save API if needed, 
-    // but a better way is to have isSaved in the post object from backend.
   }, [post._id])
 
   const isOwner = currentUserId === post.author._id
-
-  // Reaction removed since we use ReactionPicker directly now
-  // but keeping a version of handleReactionChange for count management
-  const handleReactionChange = (reaction: ReactionType | null) => {
-    // If we had a reaction before and now we don't, decrement
-    // If we didn't have one and now we do, increment
-    // If we changed types, count stays the same
-    if (userReaction && !reaction) {
-      setReactionsCount(prev => prev - 1)
-    } else if (!userReaction && reaction) {
-      setReactionsCount(prev => prev + 1)
-    }
-    
-    setUserReaction(reaction?.type || null)
-  }
 
   const saveMutation = useMutation({
     mutationFn: () => savedPostService.savePost(post._id),
@@ -81,7 +63,6 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
     },
     onError: (err: any) => {
       if (err.response?.status === 409) {
-        // Already saved, let's unsave
         unsaveMutation.mutate()
       } else {
         addToast('Lưu bài viết thất bại', 'error')
@@ -133,16 +114,16 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
             </div>
           </div>
 
-          {isOwner && (
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu((v) => !v)}
-                className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors text-gray-400 cursor-pointer"
-              >
-                <MoreHorizontal size={18} />
-              </button>
-              {showMenu && (
-                <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-lg z-10 overflow-hidden min-w-36">
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors text-gray-400 cursor-pointer"
+            >
+              <MoreHorizontal size={18} />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-lg z-10 overflow-hidden min-w-36">
+                {isOwner ? (
                   <button
                     onClick={() => {
                       setShowMenu(false)
@@ -153,10 +134,21 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
                     <Trash2 size={15} />
                     Xóa bài viết
                   </button>
-                </div>
-              )}
-            </div>
-          )}
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowMenu(false)
+                      setShowReportModal(true)
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <AlertCircle size={15} />
+                    Báo cáo bài viết
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -204,16 +196,23 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
         {/* Actions */}
         <div className="flex items-center justify-between px-3 py-2 border-t border-gray-50">
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1">
-              <ReactionPicker
-                postId={post._id}
-                userReaction={userReaction}
-                onReactionChange={handleReactionChange}
-              />
-              <span className="text-xs font-semibold text-gray-500 ml-[-4px] mr-2">
-                {reactionsCount}
-              </span>
-            </div>
+            <ReactionPicker
+              postId={post._id}
+              userReaction={userReaction}
+              onReactionChange={(r) => {
+                const prevReaction = userReaction
+                setUserReaction(r ? r.type : null)
+                
+                // Update likeCount locally for better UX
+                if (!prevReaction && r) setLikeCount(prev => prev + 1)
+                else if (prevReaction && !r) setLikeCount(prev => prev - 1)
+                
+                queryClient.invalidateQueries({ queryKey: ['posts'] })
+              }}
+            />
+            <span className="text-xs font-bold text-gray-500 pr-2">
+              {likeCount}
+            </span>
 
             <button 
               onClick={() => setShowComments(!showComments)}
@@ -275,7 +274,13 @@ export default function PostCard({ post, onDelete, currentUserId, defaultSaved =
           </button>
         </div>
       </Modal>
+
+      <ReportModal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="post"
+        targetId={post._id}
+      />
     </>
   )
 }
-

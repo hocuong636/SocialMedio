@@ -118,6 +118,17 @@ export interface ViewHistory {
   updatedAt: string
 }
 
+export interface Report {
+  _id: string
+  reporter: User
+  targetType: 'post' | 'comment' | 'user'
+  targetId: string
+  reason: string
+  status: 'pending' | 'resolved' | 'rejected'
+  createdAt: string
+  updatedAt: string
+}
+
 // ─── API Response Shapes ──────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {

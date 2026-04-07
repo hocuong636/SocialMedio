@@ -5,6 +5,8 @@ import type { Comment, User } from '../../types'
 import Avatar from '../ui/Avatar'
 import Modal from '../ui/Modal'
 import CommentComposer from './CommentComposer'
+import ReportModal from '../report/ReportModal'
+import { AlertCircle } from 'lucide-react'
 
 interface CommentCardProps {
   comment: Comment
@@ -46,6 +48,7 @@ export default function CommentCard({
   const [editContent, setEditContent] = useState(comment.content)
   const [isReplying, setIsReplying] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const isAuthor = currentUser?._id === comment.author._id
@@ -158,41 +161,54 @@ export default function CommentCard({
             </div>
 
             {/* Menu button */}
-            {isAuthor && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
-                >
-                  <MoreHorizontal size={16} />
-                </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 cursor-pointer"
+              >
+                <MoreHorizontal size={16} />
+              </button>
 
-                {showMenu && (
-                  <div className="absolute right-0 top-6 bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden min-w-32 z-20">
+              {showMenu && (
+                <div className="absolute right-0 top-6 bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden min-w-32 z-20">
+                  {isAuthor ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsEditing(true)
+                          setShowMenu(false)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <Edit2 size={14} />
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteModal(true)
+                          setShowMenu(false)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                        Xóa
+                      </button>
+                    </>
+                  ) : (
                     <button
                       onClick={() => {
-                        setIsEditing(true)
+                        setShowReportModal(true)
                         setShowMenu(false)
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
-                      <Edit2 size={14} />
-                      Sửa
+                      <AlertCircle size={14} />
+                      Báo cáo
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowDeleteModal(true)
-                        setShowMenu(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                      Xóa
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Actions */}
@@ -267,6 +283,13 @@ export default function CommentCard({
           </button>
         </div>
       </Modal>
+
+      <ReportModal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="comment"
+        targetId={comment._id}
+      />
     </>
   )
 }

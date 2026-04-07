@@ -8,6 +8,7 @@ import {
   Calendar,
   Users,
   Pencil,
+  AlertCircle,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUIStore } from '../../store/useUIStore'
@@ -17,6 +18,7 @@ import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import EditProfileModal from '../../components/profile/EditProfileModal'
+import ReportModal from '../../components/report/ReportModal'
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -32,6 +34,7 @@ export default function ProfilePage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'posts' | 'following' | 'followers'>('posts')
   const [editOpen, setEditOpen] = useState(false)
+  const [reportModalOpen, setReportModalOpen] = useState(false)
 
   const isOwnProfile = currentUser?.username === username
 
@@ -109,7 +112,7 @@ export default function ProfilePage() {
       {/* Cover + Avatar */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {/* Cover */}
-        <div className="h-36 bg-gradient-to-r from-blue-500 to-blue-700 relative">
+        <div className="h-36 bg-linear-to-r from-blue-500 to-blue-700 relative">
           {profileUser.coverUrl && (
             <img
               src={profileUser.coverUrl}
@@ -140,7 +143,7 @@ export default function ProfilePage() {
                 </Button>
               </div>
             ) : (
-              <div className="pt-14">
+              <div className="pt-14 flex gap-2">
                 <Button
                   variant={isFollowing ? 'secondary' : 'primary'}
                   size="sm"
@@ -161,6 +164,15 @@ export default function ProfilePage() {
                     </>
                   )}
                 </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReportModalOpen(true)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <AlertCircle size={15} />
+                    Báo cáo
+                  </Button>
               </div>
             )}
           </div>
@@ -263,6 +275,7 @@ export default function ProfilePage() {
                         className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
                       >
                         <Avatar
+                          src={f.following.avatarUrl}
                           name={f.following.fullName || f.following.username}
                           size="sm"
                         />
@@ -301,6 +314,7 @@ export default function ProfilePage() {
                         className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
                       >
                         <Avatar
+                          src={f.follower.avatarUrl}
                           name={f.follower.fullName || f.follower.username}
                           size="sm"
                         />
@@ -312,7 +326,7 @@ export default function ProfilePage() {
                             @{f.follower.username}
                           </p>
                         </div>
-                        <Users size={14} className="text-gray-300 flex-shrink-0" />
+                        <Users size={14} className="text-gray-300 shrink-0" />
                       </Link>
                     </li>
                   ))}
@@ -327,6 +341,15 @@ export default function ProfilePage() {
       {/* Edit profile modal */}
       {isOwnProfile && (
         <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      )}
+
+      {profileUser && (
+        <ReportModal
+          open={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          targetType="user"
+          targetId={profileUser._id}
+        />
       )}
     </>
   )

@@ -11,6 +11,7 @@ import NotificationsPage from './pages/notifications/NotificationsPage'
 import MessagesPage from './pages/messages/MessagesPage'
 import SavedPostsPage from './pages/saved/SavedPostsPage'
 import SearchPage from './pages/search/SearchPage'
+import ReportManagement from './pages/admin/ReportManagement'
 import ViewHistoryPage from './pages/history/ViewHistoryPage'
 import Toast from './components/ui/Toast'
 import Spinner from './components/ui/Spinner'
@@ -38,6 +39,19 @@ function GuestOnly({ children }: { children: React.ReactNode }) {
     )
   }
   if (user) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore()
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+  if (!user || user.role?.name !== 'admin') return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -81,6 +95,15 @@ export default function App() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/saved" element={<SavedPostsPage />} />
           <Route path="/history" element={<ViewHistoryPage />} />
+          
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <ReportManagement />
+              </AdminRoute>
+            }
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,6 +9,7 @@ import {
   Rss,
   Search,
   Bookmark,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUIStore } from '../../store/useUIStore'
@@ -77,6 +78,32 @@ export default function Sidebar() {
           ))}
         </ul>
       </nav>
+
+      {/* Admin Menu */}
+      {user?.role?.name === 'admin' && (
+        <div className="px-3 mb-4">
+          <p className="px-3 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+            Quản trị
+          </p>
+          <ul className="space-y-1">
+            <li>
+              <NavLink
+                to="/admin/reports"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`
+                }
+              >
+                <ShieldCheck size={18} />
+                Quản lý báo cáo
+              </NavLink>
+            </li>
+          </ul>
+        </div>
+      )}
 
       {/* User profile card */}
       {user && (
